@@ -28,7 +28,9 @@ export function Footer() {
             </a>
 
             <a
-              href="#"
+              href="https://wa.me/558896241621"
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="WhatsApp"
               className="rounded-full border border-border p-2 text-wine transition hover:bg-muted"
             >

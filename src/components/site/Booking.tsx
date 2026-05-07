@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Sun,
   Sparkles,
@@ -14,7 +14,6 @@ import {
   Infinity,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
@@ -171,7 +170,7 @@ export function Booking() {
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitRef = useRef(false);
 
   const cells = useMemo(() => {
     const first = new Date(view.y, view.m, 1);
@@ -270,62 +269,29 @@ export function Booking() {
     fetchAgendamentos(selectedDateFormatted);
   }, [selectedDateFormatted, serviceId]);
 
-  const handleSchedule = async () => {
-    if (!time || !selected || !summary) return;
-
-    if (!nome.trim() || !telefone.trim()) {
-      alert("Por favor, preencha seu nome e telefone antes de continuar.");
-      return;
-    }
-
+  const buildWhatsappHref = () => {
+    if (!time || !selected || !summary || !nome.trim() || !telefone.trim()) return "";
     const horarioNormalizado = normalizeTime(time);
+    const msg = `Olá, gostaria de agendar ${service.name} para o dia ${summary.date} às ${horarioNormalizado}. Meu nome é ${nome.trim()} e meu telefone é ${telefone.trim()}.`;
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+  };
 
-    if (bookedTimes.includes(horarioNormalizado)) {
-      alert("Esse horário não está mais disponível. Escolha outro horário.");
-      setTime(null);
-      await fetchAgendamentos(summary.date);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          servico: service.name,
-          data: summary.date,
-          horario: horarioNormalizado,
-          nome: nome.trim(),
-          telefone: telefone.trim(),
-        }),
-      });
-
-      const result = await res.json();
-
-      if (result.success === false) {
-        alert("Esse horário não está mais disponível. Escolha outro horário.");
-        setTime(null);
-        await fetchAgendamentos(summary.date);
-        return;
-      }
-
-      await fetchAgendamentos(summary.date);
-
-      const msg = `Olá, gostaria de agendar ${service.name} para o dia ${summary.date} às ${horarioNormalizado}. Meu nome é ${nome.trim()} e meu telefone é ${telefone.trim()}.`;
-      const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-        msg
-      )}`;
-
-      setTime(null);
-      // Abrir diretamente o link (sem window.open) para evitar bloqueio no Safari/estouro de pop-up
-      window.location.assign(href);
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao conectar. Verifique sua conexão e tente novamente.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleBookingClick = () => {
+    if (submitRef.current) return;
+    submitRef.current = true;
+    if (!time || !selected || !summary) return;
+    const horarioNormalizado = normalizeTime(time);
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        servico: service.name,
+        data: summary.date,
+        horario: horarioNormalizado,
+        nome: nome.trim(),
+        telefone: telefone.trim(),
+      }),
+    }).catch(() => {});
+    setTimeout(() => { submitRef.current = false; }, 3000);
   };
 
   const stepActive = serviceId ? (selected ? (time ? 3 : 2) : 1) : 1;
@@ -659,20 +625,27 @@ export function Booking() {
               />
             </div>
 
-            <Button
-              onClick={handleSchedule}
-              size="lg"
-              disabled={!time || !nome || !telefone || isSubmitting}
-              className="mt-5 w-full rounded-full bg-wine text-wine-foreground hover:bg-wine/90 shadow-elegant transition-all"
-            >
-              {isSubmitting ? (
-                "AGUARDANDO..."
-              ) : (
-                <>
+            {(() => {
+              const href = buildWhatsappHref();
+              const canBook = !!(time && nome && telefone && href);
+              return canBook ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleBookingClick}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-wine px-8 py-3 text-sm font-semibold text-wine-foreground shadow-elegant transition-all hover:bg-wine/90"
+                >
                   <WhatsappIcon className="size-5" /> AGENDAR PELO WHATSAPP
-                </>
-              )}
-            </Button>
+                </a>
+              ) : (
+                <span
+                  className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-wine/50 px-8 py-3 text-sm font-semibold text-wine-foreground shadow-elegant opacity-60"
+                >
+                  <WhatsappIcon className="size-5" /> AGENDAR PELO WHATSAPP
+                </span>
+              );
+            })()}
 
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Ao clicar, você será redirecionada para o WhatsApp para finalizar
