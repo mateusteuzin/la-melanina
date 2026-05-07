@@ -7,7 +7,7 @@
   ],
   "headers": [
     {
-      "source": "/client/assets/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -17,5 +17,4 @@
     }
   ]
 }
-
 
