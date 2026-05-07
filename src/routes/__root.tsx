@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import faviconUrl from "../assets/favicon.png?url";
+
 
 function NotFoundComponent() {
   return (
@@ -86,8 +88,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/favicon.png" },
+      {
+        rel: "icon",
+        type: "image/png",
+        href: faviconUrl,
+      },
+      { rel: "apple-touch-icon", href: faviconUrl },
+
     ],
   }),
   shellComponent: RootShell,
