@@ -318,7 +318,8 @@ export function Booking() {
       )}`;
 
       setTime(null);
-      window.open(href, "_blank");
+      // Abrir diretamente o link (sem window.open) para evitar bloqueio no Safari/estouro de pop-up
+      window.location.assign(href);
     } catch (err) {
       console.error(err);
       alert("Erro ao conectar. Verifique sua conexão e tente novamente.");
@@ -337,6 +338,7 @@ export function Booking() {
 
   return (
     <section id="agendar" className="bg-secondary/40">
+
       <div className="container mx-auto px-4 py-20">
         <div className="mb-10 text-center">
           <h2 className="text-3xl font-bold text-wine md:text-4xl">
