@@ -10,19 +10,8 @@ import { About } from "@/components/site/About";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Footer } from "@/components/site/Footer";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "LA MELANINA — Bronzeamento Natural Premium" },
-      { name: "description", content: "Clínica de bronzeamento premium. Realce sua beleza natural com bronze personalizado, atendimento exclusivo e ambiente acolhedor." },
-      { property: "og:title", content: "LA MELANINA — Seu bronze, sua melhor versão" },
-      { property: "og:description", content: "Bronzeamento natural premium em ambiente sofisticado e acolhedor." },
-    ],
-  }),
-  component: Index,
-});
-
-function Index() {
+// Mantém o mesmo conteúdo visual, mas agora como componente React simples (SPA).
+export function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -40,3 +29,4 @@ function Index() {
     </div>
   );
 }
+
