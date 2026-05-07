@@ -1,0 +1,110 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-bronze: var(--bronze);
+  --color-bronze-foreground: var(--bronze-foreground);
+  --color-wine: var(--wine);
+  --color-wine-foreground: var(--wine-foreground);
+  --color-nude: var(--nude);
+  --color-beige: var(--beige);
+  --color-gold: var(--gold);
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.875rem;
+  --background: oklch(0.985 0.008 70);
+  --foreground: oklch(0.25 0.04 25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.04 25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.04 25);
+  --primary: oklch(0.32 0.09 20);
+  --primary-foreground: oklch(0.98 0.01 70);
+  --secondary: oklch(0.93 0.025 60);
+  --secondary-foreground: oklch(0.32 0.09 20);
+  --muted: oklch(0.95 0.015 70);
+  --muted-foreground: oklch(0.5 0.04 40);
+  --accent: oklch(0.88 0.06 60);
+  --accent-foreground: oklch(0.32 0.09 20);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.9 0.02 60);
+  --input: oklch(0.9 0.02 60);
+  --ring: oklch(0.55 0.12 30);
+  --bronze: oklch(0.7 0.13 55);
+  --bronze-foreground: oklch(0.98 0.01 70);
+  --wine: oklch(0.32 0.09 20);
+  --wine-foreground: oklch(0.98 0.01 70);
+  --nude: oklch(0.92 0.04 60);
+  --beige: oklch(0.96 0.02 70);
+  --gold: oklch(0.78 0.13 75);
+  --gradient-hero: radial-gradient(ellipse at top right, oklch(0.98 0.02 75), oklch(0.93 0.04 65) 50%, oklch(0.88 0.06 55) 100%);
+  --gradient-bronze: linear-gradient(135deg, oklch(0.78 0.13 60), oklch(0.55 0.12 30));
+  --gradient-wine: linear-gradient(135deg, oklch(0.32 0.09 20), oklch(0.22 0.07 20));
+  --shadow-soft: 0 10px 30px -10px oklch(0.32 0.09 20 / 0.15);
+  --shadow-elegant: 0 20px 50px -20px oklch(0.32 0.09 20 / 0.25);
+  --shadow-glow: 0 0 40px oklch(0.75 0.13 55 / 0.35);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility bg-gradient-hero { background-image: var(--gradient-hero); }
+@utility bg-gradient-bronze { background-image: var(--gradient-bronze); }
+@utility bg-gradient-wine { background-image: var(--gradient-wine); }
+@utility shadow-soft { box-shadow: var(--shadow-soft); }
+@utility shadow-elegant { box-shadow: var(--shadow-elegant); }
+@utility shadow-glow { box-shadow: var(--shadow-glow); }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-fade-up { animation: fade-up 0.7s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-float { animation: float 3s ease-in-out infinite; }
