@@ -169,7 +169,7 @@ export function Booking() {
   const [time, setTime] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   const submitRef = useRef(false);
 
   const cells = useMemo(() => {
@@ -270,9 +270,10 @@ export function Booking() {
   }, [selectedDateFormatted, serviceId]);
 
   const buildWhatsappHref = () => {
-    if (!time || !selected || !summary || !nome.trim() || !telefone.trim()) return "";
+    if (!time || !selected || !summary || !nome.trim()) return "";
     const horarioNormalizado = normalizeTime(time);
-    const msg = `Olá, gostaria de agendar ${service.name} para o dia ${summary.date} às ${horarioNormalizado}. Meu nome é ${nome.trim()} e meu telefone é ${telefone.trim()}.`;
+    const obs = observacoes.trim();
+    const msg = `Olá! ✨\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${horarioNormalizado}.\n\nPoderiam confirmar a disponibilidade desse horário? 😊${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -288,7 +289,6 @@ export function Booking() {
         data: summary.date,
         horario: horarioNormalizado,
         nome: nome.trim(),
-        telefone: telefone.trim(),
       }),
     }).catch(() => {});
     setTimeout(() => { submitRef.current = false; }, 3000);
@@ -617,17 +617,16 @@ export function Booking() {
               />
 
               <Input
-                placeholder="Seu telefone/WhatsApp"
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                placeholder="Observações (Opcional) — ex: primeira sessão, dúvidas..."
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
                 className="bg-background"
               />
             </div>
 
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(time && nome && telefone && href);
+              const canBook = !!(time && nome && href);
               return canBook ? (
                 <a
                   href={href}
