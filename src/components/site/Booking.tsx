@@ -273,7 +273,9 @@ export function Booking() {
     if (!time || !selected || !summary || !nome.trim()) return "";
     const horarioNormalizado = normalizeTime(time);
     const obs = observacoes.trim();
-    const msg = `Ol\u00e1! \u2728\nGostaria de agendar uma sess\u00e3o de ${service.name} para o dia ${summary.date} \u00e0s ${horarioNormalizado}.\n\nPoderiam confirmar a disponibilidade desse hor\u00e1rio? \ud83d\ude0a${obs ? `\n\nObserva\u00e7\u00f5es: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const sparkle = String.fromCodePoint(0x2728);
+    const smile = String.fromCodePoint(0x1F60A);
+    const msg = `Ol\u00e1! ${sparkle}\nGostaria de agendar uma sess\u00e3o de ${service.name} para o dia ${summary.date} \u00e0s ${horarioNormalizado}.\n\nPoderiam confirmar a disponibilidade desse hor\u00e1rio? ${smile}${obs ? `\n\nObserva\u00e7\u00f5es: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
