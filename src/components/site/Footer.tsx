@@ -47,7 +47,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-wine" /><span>Proximo a pizzaria conterrâneo - Lagoa seca, Itarema - CE, 62590-000</span></li>
             <li className="flex items-start gap-2"><Clock className="mt-0.5 size-4 shrink-0 text-wine" />
-              <span>Seg a Sex: 09h às 20h<br />Sáb: 09h às 18h</span>
+              <span>Seg a Sex: 08h às 11h | 15h às 19h<br />Sáb: 08h às 11h | 15h às 19h</span>
             </li>
           </ul>
         </div>

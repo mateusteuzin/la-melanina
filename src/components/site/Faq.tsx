@@ -1,5 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import spa from "@/assets/spa.jpg";
+import { useInView } from "@/hooks/useInView";
 
 const faqs = [
   { q: "Quanto tempo dura o bronze?", a: "A duração média do bronze é de 7 a 15 dias, dependendo dos cuidados com a pele e do tipo de serviço escolhido." },
@@ -10,8 +11,9 @@ const faqs = [
 ];
 
 export function Faq() {
+  const { ref, inView } = useInView();
   return (
-    <section id="duvidas" className="container mx-auto grid gap-8 px-4 py-14 sm:py-20 lg:grid-cols-2 lg:items-center lg:gap-10">
+    <section ref={ref as any} id="duvidas" className={`container mx-auto grid gap-8 px-4 py-14 sm:py-20 lg:grid-cols-2 lg:items-center lg:gap-10 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="order-2 lg:order-1">
         <h2 className="mb-6 text-3xl font-bold text-wine md:text-4xl">Dúvidas frequentes</h2>
         <Accordion type="single" collapsible className="space-y-3">

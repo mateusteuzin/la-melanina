@@ -1,10 +1,12 @@
 import { Clock, ShieldCheck, Sun } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Button } from "@/components/ui/button";
+import { useInView } from "@/hooks/useInView";
 
 export function CtaBand() {
+  const { ref, inView } = useInView();
   return (
-    <section className="bg-gradient-wine text-wine-foreground">
+    <section ref={ref as any} className={`bg-gradient-wine text-wine-foreground section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="container mx-auto px-4 py-12 sm:py-16 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold md:text-4xl">Pronta para realçar sua melhor versão?</h2>
         <p className="mt-3 text-sm sm:text-base text-wine-foreground/80">Agende seu horário e viva a experiência LA MELANINA.</p>

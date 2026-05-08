@@ -1,4 +1,5 @@
 import { Sparkles, CalendarCheck, Sofa, Award } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const items = [
   { Icon: Sparkles, t: "Bronze natural e uniforme", d: "Cor dourada, sem manchas e com acabamento impecável." },
@@ -8,8 +9,9 @@ const items = [
 ];
 
 export function Benefits() {
+  const { ref, inView } = useInView();
   return (
-    <section className="container mx-auto px-4 py-14 sm:py-20">
+    <section ref={ref as any} className={`container mx-auto px-4 py-14 sm:py-20 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="mb-10 text-center">
         <h2 className="text-3xl font-bold text-wine md:text-4xl">Cuidado em cada detalhe</h2>
         <p className="mt-3 text-sm sm:text-base text-muted-foreground">Tudo o que você precisa para um bronze perfeito.</p>

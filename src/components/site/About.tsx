@@ -1,5 +1,6 @@
 import { Sparkles, ShieldCheck, Award, HandHeart } from "lucide-react";
 import about from "@/assets/about.jpg";
+import { useInView } from "@/hooks/useInView";
 
 const pillars = [
   { Icon: Sparkles, t: "Bronzeamento Personalizado" },
@@ -9,8 +10,9 @@ const pillars = [
 ];
 
 export function About() {
+  const { ref, inView } = useInView();
   return (
-    <section id="sobre" className="bg-secondary/30 py-14 sm:py-20">
+    <section ref={ref as any} id="sobre" className={`bg-secondary/30 py-14 sm:py-20 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-2 lg:items-center lg:gap-10">
         <img src={about} alt="LA MELANINA studio" loading="lazy" width={1280} height={960} className="rounded-3xl object-cover shadow-elegant aspect-[4/3] w-full order-1 lg:order-2" />
         <div className="order-2 lg:order-1">

@@ -9,6 +9,7 @@ import { Faq } from "@/components/site/Faq";
 import { About } from "@/components/site/About";
 import { CtaBand } from "@/components/site/CtaBand";
 import { Footer } from "@/components/site/Footer";
+import { WhatsappFloat } from "@/components/site/WhatsappFloat";
 
 // Mantém o mesmo conteúdo visual, mas agora como componente React simples (SPA).
 export function Index() {
@@ -26,6 +27,7 @@ export function Index() {
         <CtaBand />
       </main>
       <Footer />
+      <WhatsappFloat />
     </div>
   );
 }

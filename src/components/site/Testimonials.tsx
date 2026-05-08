@@ -1,15 +1,17 @@
 import { Star } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const items = [
   { name: "Juliana A.", text: "Atendimento incrível e bronze perfeito! Me senti muito bem cuidada e o resultado ficou maravilhoso. Super recomendo!" },
-  { name: "Beatriz M.", text: "O resultado ficou natural, uniforme e lindo. Amei! Já virei cliente fiel." },
+  { name: "Samila A.", text: "O resultado ficou natural, uniforme e lindo. Amei! Já virei cliente fiel." },
   { name: "Carla D.", text: "Ambiente maravilhoso, confortável e muito profissional. Me senti em casa!" },
   { name: "Mariana S.", text: "Melhor bronzeamento que já fiz! Pele iluminada, sem manchas e com resultado impecável." },
 ];
 
 export function Testimonials() {
+  const { ref, inView } = useInView();
   return (
-    <section className="bg-accent/30 py-14 sm:py-20">
+    <section ref={ref as any} className={`bg-accent/30 py-14 sm:py-20 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="container mx-auto px-4">
         <div className="mb-10 text-center">
           <h2 className="text-3xl font-bold text-wine md:text-4xl">O que nossas clientes dizem</h2>

@@ -3,6 +3,7 @@ import r2 from "@/assets/result2.jpg";
 import r3 from "@/assets/result3.jpg";
 import r4 from "@/assets/result4.jpg";
 import { Sun, Sparkles, Droplet } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 const items = [
   { src: r1, label: "Bronze Natural", Icon: Sun },
@@ -12,8 +13,9 @@ const items = [
 ];
 
 export function Results() {
+  const { ref, inView } = useInView();
   return (
-    <section id="resultados" className="container mx-auto px-4 py-14 sm:py-20">
+    <section ref={ref as any} id="resultados" className={`container mx-auto px-4 py-14 sm:py-20 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="mb-10 text-center">
         <h2 className="text-3xl font-bold text-wine md:text-4xl">Resultados que realçam sua beleza</h2>
         <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base text-muted-foreground">
