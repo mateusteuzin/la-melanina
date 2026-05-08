@@ -9,20 +9,20 @@ const items = [
 
 export function Testimonials() {
   return (
-    <section className="bg-accent/30 py-20">
+    <section className="bg-accent/30 py-14 sm:py-20">
       <div className="container mx-auto px-4">
-        <div className="mb-12 text-center">
+        <div className="mb-10 text-center">
           <h2 className="text-3xl font-bold text-wine md:text-4xl">O que nossas clientes dizem</h2>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((t) => (
-            <div key={t.name} className="rounded-3xl border border-border bg-card p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant">
+            <div key={t.name} className="rounded-3xl border border-border bg-card p-5 sm:p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant">
               <div className="mb-3 flex justify-center gap-0.5 text-bronze">
                 {[...Array(5)].map((_, i) => <Star key={i} className="size-4 fill-current" />)}
               </div>
               <p className="text-sm italic text-foreground/80">"{t.text}"</p>
               <div className="mt-4 flex items-center justify-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-gradient-bronze text-sm font-semibold text-bronze-foreground">
+                <div className="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-full bg-gradient-bronze text-sm font-semibold text-bronze-foreground">
                   {t.name.charAt(0)}
                 </div>
                 <div className="text-left">
