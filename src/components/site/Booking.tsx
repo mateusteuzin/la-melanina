@@ -50,14 +50,7 @@ export function Booking() {
 
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
-  const [selected, setSelected] = useState<Date | null>(() => {
-    const d = new Date(today); 
-    d.setDate(today.getDate() + 2); 
-    if (d.getDay() === 1) { // Skip Monday
-      d.setDate(d.getDate() + 1);
-    }
-    return d;
-  });
+  const [selected, setSelected] = useState<Date | null>(() => new Date());
 
   const [time, setTime] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
