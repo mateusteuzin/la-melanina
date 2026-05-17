@@ -51,7 +51,12 @@ export function Booking() {
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const [selected, setSelected] = useState<Date | null>(() => {
-    const d = new Date(today); d.setDate(today.getDate() + 2); return d;
+    const d = new Date(today); 
+    d.setDate(today.getDate() + 2); 
+    if (d.getDay() === 1) { // Skip Monday
+      d.setDate(d.getDate() + 1);
+    }
+    return d;
   });
 
   const [time, setTime] = useState<string | null>(null);
@@ -75,7 +80,7 @@ export function Booking() {
 
     for (let d = 1; d <= lastDay; d++) {
       const date = new Date(view.y, view.m, d);
-      arr.push({ date, current: true, disabled: date < t0 });
+      arr.push({ date, current: true, disabled: date < t0 || date.getDay() === 1 });
     }
 
     while (arr.length % 7 !== 0) {
@@ -252,31 +257,37 @@ export function Booking() {
                 <div className="mt-4 text-center text-xs sm:text-sm font-medium text-foreground">
                   {WEEKDAYS[selected.getDay()]}, {selected.getDate()} de {MONTHS[selected.getMonth()]}
                 </div>
-                <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4">
-                  {currentTimes.map((t) => {
-                    const horarioNormalizado = normalizeTime(t);
-                    const unavail = bookedTimes.includes(horarioNormalizado);
-                    const sel = time === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        disabled={unavail}
-                        onClick={() => { if (unavail) return; setTime(t); }}
-                        className={`rounded-xl border px-1 py-2 text-xs sm:text-sm font-medium transition-all
-                          ${unavail
-                            ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
-                            : sel
-                              ? "border-wine bg-wine text-wine-foreground shadow-soft"
-                              : "border-border bg-background text-foreground hover:border-wine/50"
-                          }`}
-                      >
-                        <div>{t}</div>
-                        {unavail && <div className="text-[9px] uppercase leading-tight">Indisponível</div>}
-                      </button>
-                    );
-                  })}
-                </div>
+                {selected.getDay() === 1 ? (
+                  <div className="mt-6 text-center text-sm font-medium text-muted-foreground p-4 bg-muted/30 rounded-xl border border-border">
+                    Fechado às segundas-feiras
+                  </div>
+                ) : (
+                  <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4">
+                    {currentTimes.map((t) => {
+                      const horarioNormalizado = normalizeTime(t);
+                      const unavail = bookedTimes.includes(horarioNormalizado);
+                      const sel = time === t;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={unavail}
+                          onClick={() => { if (unavail) return; setTime(t); }}
+                          className={`rounded-xl border px-1 py-2 text-xs sm:text-sm font-medium transition-all
+                            ${unavail
+                              ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
+                              : sel
+                                ? "border-wine bg-wine text-wine-foreground shadow-soft"
+                                : "border-border bg-background text-foreground hover:border-wine/50"
+                            }`}
+                        >
+                          <div>{t}</div>
+                          {unavail && <div className="text-[9px] uppercase leading-tight">Indisponível</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
           </div>

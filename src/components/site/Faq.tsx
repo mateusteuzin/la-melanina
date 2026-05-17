@@ -1,5 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import spa from "@/assets/spa.jpg";
+import faqImg from "@/assets/la melanina estudio2.png";
 import { useInView } from "@/hooks/useInView";
 
 const faqs = [
@@ -13,8 +13,8 @@ const faqs = [
 export function Faq() {
   const { ref, inView } = useInView();
   return (
-    <section ref={ref as any} id="duvidas" className={`container mx-auto grid gap-8 px-4 py-14 sm:py-20 lg:grid-cols-2 lg:items-center lg:gap-10 section-hidden ${inView ? "section-visible" : ""}`}>
-      <div className="order-2 lg:order-1">
+    <section ref={ref as any} id="duvidas" className={`container mx-auto grid gap-8 px-4 py-14 sm:py-20 lg:grid-cols-2 lg:items-stretch lg:gap-10 section-hidden ${inView ? "section-visible" : ""}`}>
+      <div className="order-2 lg:order-1 flex flex-col justify-center">
         <h2 className="mb-6 text-3xl font-bold text-wine md:text-4xl">Dúvidas frequentes</h2>
         <Accordion type="single" collapsible className="space-y-3">
           {faqs.map((f, i) => (
@@ -25,7 +25,9 @@ export function Faq() {
           ))}
         </Accordion>
       </div>
-      <img src={spa} alt="Ambiente da clínica LA MELANINA" loading="lazy" width={1280} height={960} className="rounded-3xl object-cover shadow-elegant aspect-[5/4] w-full order-1 lg:order-2" />
+      <div className="order-1 lg:order-2 flex h-full min-h-[300px]">
+        <img src={faqImg} alt="Ambiente da clínica LA MELANINA" loading="lazy" className="rounded-3xl object-cover object-center shadow-elegant w-full h-full aspect-[4/3] lg:aspect-auto" />
+      </div>
     </section>
   );
 }

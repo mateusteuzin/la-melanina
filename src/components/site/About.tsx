@@ -1,5 +1,5 @@
 import { Sparkles, ShieldCheck, Award, HandHeart } from "lucide-react";
-import about from "@/assets/about.jpg";
+import about from "@/assets/mayara preto2.png";
 import { useInView } from "@/hooks/useInView";
 
 const pillars = [
@@ -14,7 +14,7 @@ export function About() {
   return (
     <section ref={ref as any} id="sobre" className={`bg-secondary/30 py-14 sm:py-20 section-hidden ${inView ? "section-visible" : ""}`}>
       <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-2 lg:items-center lg:gap-10">
-        <img src={about} alt="LA MELANINA studio" loading="lazy" width={1280} height={960} className="rounded-3xl object-cover shadow-elegant aspect-[4/3] w-full order-1 lg:order-2" />
+        <img src={about} alt="LA MELANINA studio" loading="lazy" width={1280} height={960} className="rounded-3xl object-cover object-[center_15%] shadow-elegant aspect-[4/3] w-full order-1 lg:order-2" />
         <div className="order-2 lg:order-1">
           <h2 className="mb-4 text-3xl font-bold text-wine md:text-4xl">Sobre a LA MELANINA</h2>
           <p className="text-foreground/75 text-sm sm:text-base leading-relaxed">
