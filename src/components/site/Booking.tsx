@@ -1,13 +1,16 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Sun, Sparkles, Droplet, ChevronLeft, ChevronRight,
-  Calendar, Clock, Info, Send, Flame, Zap, Infinity,
+  Calendar, Clock, Info, Send, Flame, Zap, Infinity, AlertCircle,
+  CreditCard, Wind,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzL1AmdqbO1WprMTL5nZYj98AtMNwF9nQqtETbq0Kppo_Spje7ckQO9z5Bq8XFWNIgX5g/exec";
+
+type ServiceCategory = "natural" | "cabine";
 
 type Service = {
   id: string;
@@ -16,19 +19,84 @@ type Service = {
   price: string;
   desc: string;
   Icon: typeof Sun;
+  category: ServiceCategory;
 };
 
-const services: Service[] = [
-  { id: "praiano", name: "Praiano", duration: "2 horas", price: "R$ 70,00", desc: "Parafina, 2 ativadores e banho de lua clareador.", Icon: Sun },
-  { id: "hipersonico", name: "Hipersônico", duration: "2 horas", price: "R$ 80,00", desc: "Giga óleo, 3 ativadores, acelerador e banho de lua clareador.", Icon: Flame },
-  { id: "turbo-neon", name: "Turbo Neon", duration: "2 horas", price: "R$ 85,00", desc: "Giga bronze, 3 ativadores, acelerador, intensificador e banho de lua clareador.", Icon: Zap },
-  { id: "praiano-cabine", name: "Praiano Bronze Artificial", duration: "45 min", price: "R$ 120,00", desc: "Ativador, intensificador, fixador, acelerador e banho de lua.", Icon: Droplet },
-  { id: "turbo-cabine", name: "Turbo Bronze Artificial", duration: "45 min", price: "R$ 130,00", desc: "3 ativadores, intensificador, fixador, acelerador e banho de lua.", Icon: Sparkles },
-  { id: "bronze-duplo", name: "Bronze Duplo", duration: "2 horas", price: "R$ 145,00", desc: "Bronze artificial turbo + bronze natural no sol.", Icon: Infinity },
+// BRONZE NATURAL - Períodos
+const NATURAL_SERVICES: Service[] = [
+  { 
+    id: "praiano", 
+    name: "Bronze Praiano", 
+    duration: "período", 
+    price: "R$ 70,00", 
+    desc: "Parafina, 2 ativadores e banho de lua clareador.",
+    Icon: Sun,
+    category: "natural"
+  },
+  { 
+    id: "power", 
+    name: "Bronze Power", 
+    duration: "período", 
+    price: "R$ 80,00", 
+    desc: "Giga óleo, 3 ativadores, acelerador e banho de lua clareador.",
+    Icon: Flame,
+    category: "natural"
+  },
+  { 
+    id: "turbinado", 
+    name: "Bronze Turbinado", 
+    duration: "período", 
+    price: "R$ 85,00", 
+    desc: "Giga bronze, 3 ativadores, acelerador, intensificador e banho de lua clareador.",
+    Icon: Zap,
+    category: "natural"
+  },
 ];
 
-const TIMES_NATURAL = ["08:00","09:00","10:00","11:00","15:00","16:00","17:00","18:00","19:00"];
-const TIMES_CABINE  = ["08:00","09:00","10:00","11:00","15:00","16:00","17:00","18:00","19:00"];
+// BRONZE EM CABINE - Horários individuais
+const CABINE_SERVICES: Service[] = [
+  { 
+    id: "solazul", 
+    name: "Bronze Sol Azul", 
+    duration: "45 min", 
+    price: "R$ 120,00", 
+    desc: "Ativador, intensificador, fixador, acelerador e banho de lua.",
+    Icon: Droplet,
+    category: "cabine"
+  },
+  { 
+    id: "solazul-turbo", 
+    name: "Bronze Sol Azul Turbo", 
+    duration: "45 min", 
+    price: "R$ 130,00", 
+    desc: "3 ativadores, intensificador, fixador, acelerador e banho de lua.",
+    Icon: Sparkles,
+    category: "cabine"
+  },
+  { 
+    id: "duplo", 
+    name: "Bronze Duplo", 
+    duration: "2 horas", 
+    price: "R$ 140,00", 
+    desc: "Bronze artificial turbo + bronze natural no sol.",
+    Icon: Infinity,
+    category: "cabine"
+  },
+];
+
+const services: Service[] = [...NATURAL_SERVICES, ...CABINE_SERVICES];
+
+// Períodos para Bronze Natural
+const PERIODS = [
+  { id: "manha", label: "Manhã", time: "08h às 10h", value: "Manhã (08h-10h)" },
+  { id: "tarde", label: "Tarde", time: "15h às 17h", value: "Tarde (15h-17h)" },
+];
+
+// Horários para Bronze em Cabine
+const TIMES_CABINE_MANHA = ["08:00", "09:00", "10:00", "11:00"];
+const TIMES_CABINE_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const TIMES_CABINE = [...TIMES_CABINE_MANHA, ...TIMES_CABINE_TARDE];
+
 const DAYS    = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const WEEKDAYS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
@@ -44,15 +112,18 @@ function normalizeTime(value: string) {
   return v;
 }
 
+function getServiceCategory(serviceId: string): ServiceCategory {
+  const service = services.find(s => s.id === serviceId);
+  return service?.category || "natural";
+}
+
 export function Booking() {
   const [serviceId, setServiceId] = useState<string>("praiano");
   const today = new Date();
-
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
-
   const [selected, setSelected] = useState<Date | null>(() => new Date());
-
   const [time, setTime] = useState<string | null>(null);
+  const [period, setPeriod] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -85,10 +156,13 @@ export function Booking() {
   }, [view]);
 
   const service = services.find((s) => s.id === serviceId)!;
+  const serviceCategory = getServiceCategory(serviceId);
+  const isNatural = serviceCategory === "natural";
+  const isCabine = serviceCategory === "cabine";
+  
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
   const selectedDateFormatted = selected ? formatDateBR(selected) : "";
-
-  const summary = selected && time ? { date: selectedDateFormatted, weekday: WEEKDAYS[selected.getDay()] } : null;
+  const summary = selected ? { date: selectedDateFormatted, weekday: WEEKDAYS[selected.getDay()] } : null;
 
   const fetchAgendamentos = async (dateStr: string) => {
     try {
@@ -112,18 +186,19 @@ export function Booking() {
   }, [selectedDateFormatted, serviceId]);
 
   const buildWhatsappHref = () => {
-    if (!time || !selected || !summary || !nome.trim()) return "";
-    const horarioNormalizado = normalizeTime(time);
+    const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
+    if (!displayTime || !selected || !summary || !nome.trim()) return "";
     const obs = observacoes.trim();
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${horarioNormalizado}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
   const handleBookingClick = () => {
     if (submitRef.current) return;
     submitRef.current = true;
-    if (!time || !selected || !summary) return;
-    const horarioNormalizado = normalizeTime(time);
+    const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
+    if (!displayTime || !selected || !summary) return;
+    const horarioNormalizado = normalizeTime(displayTime);
     fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({ servico: service.name, data: summary.date, horario: horarioNormalizado, nome: nome.trim() }),
@@ -131,8 +206,10 @@ export function Booking() {
     setTimeout(() => { submitRef.current = false; }, 3000);
   };
 
-  const stepActive = serviceId ? (selected ? (time ? 3 : 2) : 1) : 1;
-  const currentTimes = ["praiano-cabine", "turbo-cabine", "bronze-duplo"].includes(serviceId) ? TIMES_CABINE : TIMES_NATURAL;
+  const stepActive = serviceId ? (selected ? (isNatural ? (period ? 3 : 2) : (time ? 3 : 2)) : 1) : 1;
+  const selectedTimeDisplay: string = isNatural 
+    ? (period ? (PERIODS.find(p => p.id === period)?.value || "—") : "—") 
+    : (time || "—");
 
   return (
     <section id="agendar" className="bg-secondary/40">
@@ -162,43 +239,53 @@ export function Booking() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
+          {/* SELEÇÃO DE SERVIÇOS */}
           <div id="servicos" className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">1. Escolha o serviço</h3>
-            <div className="space-y-3">
-              {services.map((s) => {
-                const sel = serviceId === s.id;
-                const Icon = s.Icon;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => { setServiceId(s.id); setTime(null); }}
-                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 sm:p-4 text-left transition-all ${sel ? "border-wine bg-wine/5 shadow-soft" : "border-border hover:border-wine/40 hover:bg-muted/50"}`}
-                  >
-                    <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${sel ? "border-wine bg-wine" : "border-border"}`}>
-                      {sel && <span className="size-1.5 rounded-full bg-wine-foreground" />}
-                    </span>
-                    <div className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-wine">
-                      <Icon className="size-5 sm:size-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="font-semibold text-foreground text-sm sm:text-base truncate">{s.name}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">{s.duration}</span>
-                      </div>
-                      <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{s.desc}</p>
-                      <div className="mt-1 font-semibold text-wine text-sm">{s.price}</div>
-                    </div>
-                  </button>
-                );
-              })}
+            
+            {/* Bronze Natural */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Wind className="size-5 text-wine" />
+                <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze Natural</h4>
+              </div>
+              <div className="space-y-3">
+                {NATURAL_SERVICES.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                ))}
+              </div>
             </div>
-            <div className="mt-4 flex items-start gap-2 rounded-2xl bg-muted/60 p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
+
+            {/* Separador Visual */}
+            <div className="my-6 border-t border-border/50" />
+
+            {/* Bronze em Cabine */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Droplet className="size-5 text-wine" />
+                <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze em Cabine</h4>
+              </div>
+              <div className="space-y-3">
+                {CABINE_SERVICES.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Info Geral */}
+            <div className="mt-6 flex items-start gap-2 rounded-2xl bg-muted/60 p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0" />
               <span>Todos os serviços incluem preparo de pele e finalização hidratante.</span>
             </div>
+
+            {/* Pagamento */}
+            <div className="mt-3 flex items-start gap-2 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 p-3 sm:p-4 text-xs sm:text-sm text-amber-900 dark:text-amber-100">
+              <CreditCard className="mt-0.5 size-4 shrink-0" />
+              <span><span className="font-semibold">Formas de pagamento:</span> Cartão de crédito, débito e Pix aceitos.</span>
+            </div>
           </div>
 
+          {/* DATA E HORÁRIO */}
           <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">2. Escolha a data e horário</h3>
             <div className="rounded-2xl bg-background p-3 sm:p-4">
@@ -234,7 +321,7 @@ export function Booking() {
                     <button
                       key={i}
                       disabled={c.disabled}
-                      onClick={() => { setSelected(c.date); setTime(null); }}
+                      onClick={() => { setSelected(c.date); setTime(null); setPeriod(null); }}
                       className={`aspect-square rounded-full text-xs sm:text-sm font-medium transition-colors disabled:cursor-not-allowed
                         ${!c.current || c.disabled ? "text-muted-foreground/40 opacity-50" : "text-foreground hover:bg-accent/50"}
                         ${isMonday && c.current ? "opacity-40 hover:bg-transparent" : ""}
@@ -257,31 +344,112 @@ export function Booking() {
                     Fechado às segundas-feiras
                   </div>
                 ) : (
-                  <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4">
-                    {currentTimes.map((t) => {
-                      const horarioNormalizado = normalizeTime(t);
-                      const unavail = bookedTimes.includes(horarioNormalizado);
-                      const sel = time === t;
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          disabled={unavail}
-                          onClick={() => { if (unavail) return; setTime(t); }}
-                          className={`rounded-xl border px-1 py-2 text-xs sm:text-sm font-medium transition-all
-                            ${unavail
-                              ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
-                              : sel
-                                ? "border-wine bg-wine text-wine-foreground shadow-soft"
-                                : "border-border bg-background text-foreground hover:border-wine/50"
-                            }`}
-                        >
-                          <div>{t}</div>
-                          {unavail && <div className="text-[9px] uppercase leading-tight">Indisponível</div>}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <>
+                    {/* Avisos específicos por categoria */}
+                    {isNatural && (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3 text-xs sm:text-sm text-rose-900 dark:text-rose-100">
+                        <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
+                        <span><span className="font-semibold">Período flexível:</span> O bronze natural é realizado por período. As clientes são atendidas conforme a organização do espaço.</span>
+                      </div>
+                    )}
+                    {isCabine && (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 p-3 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
+                        <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
+                        <span><span className="font-semibold">Atendimento em cabine:</span> Tolerância máxima de 10 minutos de atraso. Após esse prazo, o horário poderá ser remarcado conforme disponibilidade.</span>
+                      </div>
+                    )}
+
+                    {/* Seleção de Períodos (Bronze Natural) */}
+                    {isNatural && (
+                      <div className="mt-4 space-y-2">
+                        {PERIODS.map((p) => {
+                          const sel = period === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setPeriod(p.id)}
+                              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 sm:px-4 sm:py-3 text-left transition-all
+                                ${sel
+                                  ? "border-wine bg-wine/10 shadow-soft"
+                                  : "border-border bg-background text-foreground hover:border-wine/50 hover:bg-muted/30"
+                                }`}
+                            >
+                              <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${sel ? "border-wine bg-wine" : "border-border"}`}>
+                                {sel && <span className="size-1.5 rounded-full bg-wine-foreground" />}
+                              </span>
+                              <div className="flex-1">
+                                <div className="font-semibold text-sm sm:text-base text-foreground">{p.label}</div>
+                                <div className="text-xs text-muted-foreground">{p.time}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Seleção de Horários (Bronze em Cabine) */}
+                    {isCabine && (
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {TIMES_CABINE_MANHA.map((t) => {
+                              const horarioNormalizado = normalizeTime(t);
+                              const unavail = bookedTimes.includes(horarioNormalizado);
+                              const sel = time === t;
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  disabled={unavail}
+                                  onClick={() => { if (!unavail) setTime(t); }}
+                                  className={`rounded-lg border px-2 py-2 text-xs sm:text-sm font-medium transition-all
+                                    ${unavail
+                                      ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
+                                      : sel
+                                        ? "border-wine bg-wine text-wine-foreground shadow-soft"
+                                        : "border-border bg-background text-foreground hover:border-wine/50"
+                                    }`}
+                                >
+                                  {t}
+                                  {unavail && <div className="text-[9px]">Indisponível</div>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {TIMES_CABINE_TARDE.map((t) => {
+                              const horarioNormalizado = normalizeTime(t);
+                              const unavail = bookedTimes.includes(horarioNormalizado);
+                              const sel = time === t;
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  disabled={unavail}
+                                  onClick={() => { if (!unavail) setTime(t); }}
+                                  className={`rounded-lg border px-2 py-2 text-xs sm:text-sm font-medium transition-all
+                                    ${unavail
+                                      ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
+                                      : sel
+                                        ? "border-wine bg-wine text-wine-foreground shadow-soft"
+                                        : "border-border bg-background text-foreground hover:border-wine/50"
+                                    }`}
+                                >
+                                  {t}
+                                  {unavail && <div className="text-[9px]">Indisponível</div>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -289,6 +457,7 @@ export function Booking() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Como funciona */}
           <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">Como funciona o agendamento</h3>
             <ol className="space-y-4">
@@ -310,6 +479,7 @@ export function Booking() {
             </ol>
           </div>
 
+          {/* Confirmação */}
           <div className="rounded-3xl border border-border bg-accent/30 p-4 sm:p-6 shadow-soft">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">3. Confirme seu agendamento</h3>
             <div className="mx-auto flex size-12 sm:size-14 animate-float items-center justify-center rounded-full bg-wine text-wine-foreground shadow-glow">
@@ -319,12 +489,27 @@ export function Booking() {
             <p className="mt-1 text-center text-xs sm:text-sm text-muted-foreground">
               Você será direcionada ao WhatsApp com os detalhes do seu agendamento.
             </p>
+
+            {/* Resumo */}
             <div className="mt-4 space-y-2 rounded-2xl border border-border bg-card p-3 sm:p-4 text-sm">
               <Row icon={<Sun className="size-4" />} label="Serviço" value={service.name} />
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
-              <Row icon={<Clock className="size-4" />} label="Horário" value={time ?? "—"} />
+              <Row icon={<Clock className="size-4" />} label={isNatural ? "Período" : "Horário"} value={selectedTimeDisplay} />
+              <div className="border-t border-border pt-2 mt-2">
+                <Row icon={<CreditCard className="size-4" />} label="Valor" value={service.price} />
+              </div>
+              {isCabine && (
+                <div className="border-t border-border pt-2 mt-2">
+                  <p className="text-xs text-muted-foreground flex items-start gap-2">
+                    <AlertCircle className="size-3 mt-0.5 shrink-0 flex-shrink-0" />
+                    <span>Tolerância máxima: 10 minutos de atraso.</span>
+                  </p>
+                </div>
+              )}
             </div>
-            <div className={`mt-3 space-y-2 transition-all ${time ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+
+            {/* Inputs */}
+            <div className={`mt-3 space-y-2 transition-all ${(isNatural ? period : time) ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
               <Input
                 placeholder="Seu nome completo"
                 value={nome}
@@ -338,9 +523,11 @@ export function Booking() {
                 className="bg-background text-sm"
               />
             </div>
+
+            {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(time && nome && href);
+              const canBook = !!(((isNatural ? period : time) && nome && href));
               return canBook ? (
                 <a
                   href={href}
@@ -367,6 +554,34 @@ export function Booking() {
   );
 }
 
+// Componente para Card de Serviço
+function ServiceCard({ service, isSelected, onSelect }: { service: Service; isSelected: boolean; onSelect: () => void }) {
+  const Icon = service.Icon;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex w-full items-center gap-3 rounded-2xl border p-3 sm:p-4 text-left transition-all ${isSelected ? "border-wine bg-wine/5 shadow-soft" : "border-border hover:border-wine/40 hover:bg-muted/50"}`}
+    >
+      <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? "border-wine bg-wine" : "border-border"}`}>
+        {isSelected && <span className="size-1.5 rounded-full bg-wine-foreground" />}
+      </span>
+      <div className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-wine">
+        <Icon className="size-5 sm:size-6" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-1">
+          <span className="font-semibold text-foreground text-sm sm:text-base truncate">{service.name}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{service.duration}</span>
+        </div>
+        <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{service.desc}</p>
+        <div className="mt-1 font-semibold text-wine text-sm">{service.price}</div>
+      </div>
+    </button>
+  );
+}
+
+// Componente para Linha de Resumo
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
