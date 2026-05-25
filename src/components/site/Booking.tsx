@@ -2,10 +2,11 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Sun, Sparkles, Droplet, ChevronLeft, ChevronRight,
   Calendar, Clock, Info, Send, Flame, Zap, Infinity, AlertCircle,
-  CreditCard, Wind,
+  CreditCard, Wind, Mail, Bell, CheckCircle,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
+import { adicionarNewsletterMailchimp, gerarLinkAvaliacao } from "@/lib/mailchimp";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzL1AmdqbO1WprMTL5nZYj98AtMNwF9nQqtETbq0Kppo_Spje7ckQO9z5Bq8XFWNIgX5g/exec";
@@ -126,7 +127,10 @@ export function Booking() {
   const [period, setPeriod] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [newsletter, setNewsletter] = useState(true);
   const [observacoes, setObservacoes] = useState("");
+  const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
   const submitRef = useRef(false);
 
   const cells = useMemo(() => {
@@ -187,22 +191,45 @@ export function Booking() {
 
   const buildWhatsappHref = () => {
     const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
-    if (!displayTime || !selected || !summary || !nome.trim()) return "";
+    if (!displayTime || !selected || !summary || !nome.trim() || !email.trim()) return "";
     const obs = observacoes.trim();
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}\nEmail: ${email.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
-  const handleBookingClick = () => {
+  const handleBookingClick = async () => {
     if (submitRef.current) return;
     submitRef.current = true;
     const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
-    if (!displayTime || !selected || !summary) return;
+    if (!displayTime || !selected || !summary) {
+      submitRef.current = false;
+      return;
+    }
     const horarioNormalizado = normalizeTime(displayTime);
-    fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ servico: service.name, data: summary.date, horario: horarioNormalizado, nome: nome.trim() }),
-    }).catch(() => {});
+    
+    try {
+      // Salvar agendamento
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ 
+          servico: service.name, 
+          data: summary.date, 
+          horario: horarioNormalizado, 
+          nome: nome.trim(),
+          email: email.trim(),
+        }),
+      }).catch(() => {});
+
+      // Adicionar à newsletter se consentir
+      if (newsletter && email.trim()) {
+        await adicionarNewsletterMailchimp(email.trim(), nome.trim(), service.name, summary.date);
+      }
+
+      setAgendamentoConfirmado(true);
+    } catch (error) {
+      console.error('Erro ao processar agendamento:', error);
+    }
+    
     setTimeout(() => { submitRef.current = false; }, 3000);
   };
 
@@ -517,6 +544,26 @@ export function Booking() {
                 className="bg-background text-sm"
               />
               <Input
+                type="email"
+                placeholder="Seu email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-background text-sm"
+              />
+              <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="newsletter-checkbox"
+                  checked={newsletter}
+                  onChange={(e) => setNewsletter(e.target.checked)}
+                  className="size-4 accent-wine rounded cursor-pointer"
+                />
+                <label htmlFor="newsletter-checkbox" className="text-xs sm:text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
+                  <Bell className="size-3" />
+                  Receber dicas e promoções por email
+                </label>
+              </div>
+              <Input
                 placeholder="Observações (Opcional)"
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
@@ -527,7 +574,12 @@ export function Booking() {
             {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(((isNatural ? period : time) && nome && href));
+              const canBook = !!(((isNatural ? period : time) && nome && email && href));
+              
+              const linkAvaliacao = canBook 
+                ? gerarLinkAvaliacao(nome, service.name, summary?.date || '', email)
+                : '';
+
               return canBook ? (
                 <a
                   href={href}
@@ -547,6 +599,33 @@ export function Booking() {
             <p className="mt-2 text-center text-xs text-muted-foreground">
               Ao clicar, você será redirecionada para o WhatsApp para finalizar seu agendamento.
             </p>
+
+            {/* Confirmação de Agendamento */}
+            {agendamentoConfirmado && (
+              <div className="mt-4 p-4 rounded-2xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50 animate-in fade-in">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Agendamento recebido! ✨</p>
+                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Verifique seu email para confirmação e dicas especiais.</p>
+                    
+                    {(() => {
+                      const linkAvaliacao = gerarLinkAvaliacao(nome, service.name, summary?.date || '', email);
+                      return linkAvaliacao ? (
+                        <a
+                          href={linkAvaliacao}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-2 text-xs font-semibold text-green-700 dark:text-green-300 hover:underline flex items-center gap-1"
+                        >
+                          ⭐ Deixe sua avaliação
+                        </a>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
