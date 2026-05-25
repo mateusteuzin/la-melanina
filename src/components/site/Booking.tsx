@@ -73,7 +73,7 @@ export function Booking() {
 
     for (let d = 1; d <= lastDay; d++) {
       const date = new Date(view.y, view.m, d);
-      arr.push({ date, current: true, disabled: date < t0 || date.getDay() === 1 });
+      arr.push({ date, current: true, disabled: date < t0 || date.getDay() === 1 || date.getDay() === 0 });
     }
 
     while (arr.length % 7 !== 0) {
@@ -229,13 +229,16 @@ export function Booking() {
               <div className="grid grid-cols-7 gap-0.5">
                 {cells.map((c, i) => {
                   const sel = selected && sameDay(c.date, selected);
+                  const isSunday = c.current && c.date.getDay() === 0;
+                  const isMonday = c.current && c.date.getDay() === 1;
                   return (
                     <button
                       key={i}
                       disabled={c.disabled}
                       onClick={() => { setSelected(c.date); setTime(null); }}
                       className={`aspect-square rounded-full text-xs sm:text-sm font-medium transition-colors disabled:cursor-not-allowed
-                        ${!c.current || c.disabled ? "text-muted-foreground/40" : "text-foreground hover:bg-accent/50"}
+                        ${!c.current || c.disabled ? "text-muted-foreground/40 opacity-50" : "text-foreground hover:bg-accent/50"}
+                        ${(isSunday || isMonday) && c.current ? "opacity-40 hover:bg-transparent" : ""}
                         ${sel ? "bg-wine text-wine-foreground hover:bg-wine" : ""}`}
                     >
                       {c.date.getDate()}
@@ -250,7 +253,11 @@ export function Booking() {
                 <div className="mt-4 text-center text-xs sm:text-sm font-medium text-foreground">
                   {WEEKDAYS[selected.getDay()]}, {selected.getDate()} de {MONTHS[selected.getMonth()]}
                 </div>
-                {selected.getDay() === 1 ? (
+                {selected.getDay() === 0 ? (
+                  <div className="mt-6 text-center text-sm font-medium text-muted-foreground p-4 bg-muted/30 rounded-xl border border-border">
+                    Fechado aos domingos
+                  </div>
+                ) : selected.getDay() === 1 ? (
                   <div className="mt-6 text-center text-sm font-medium text-muted-foreground p-4 bg-muted/30 rounded-xl border border-border">
                     Fechado às segundas-feiras
                   </div>
