@@ -577,7 +577,7 @@ export function Booking() {
             {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(((isNatural ? period : time) && nome && href));
+              const canBook = !!(((isNatural ? period : time) && nome && telefone && href));
               
 
               return canBook ? (
