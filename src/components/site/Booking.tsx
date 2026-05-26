@@ -561,25 +561,11 @@ export function Booking() {
                 className="bg-background text-sm"
               />
               <Input
-                type="email"
-                placeholder="Seu email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Seu telefone (WhatsApp)"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
                 className="bg-background text-sm"
               />
-              <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="newsletter-checkbox"
-                  checked={newsletter}
-                  onChange={(e) => setNewsletter(e.target.checked)}
-                  className="size-4 accent-wine rounded cursor-pointer"
-                />
-                <label htmlFor="newsletter-checkbox" className="text-xs sm:text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
-                  <Bell className="size-3" />
-                  Receber dicas e promoções por email
-                </label>
-              </div>
               <Input
                 placeholder="Observações (Opcional)"
                 value={observacoes}
@@ -591,11 +577,8 @@ export function Booking() {
             {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(((isNatural ? period : time) && nome && email && href));
+              const canBook = !!(((isNatural ? period : time) && nome && href));
               
-              const linkAvaliacao = canBook 
-                ? gerarLinkAvaliacao(nome, service.name, summary?.date || '', email)
-                : '';
 
               return canBook ? (
                 <a
@@ -624,21 +607,8 @@ export function Booking() {
                   <CheckCircle className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Agendamento recebido! ✨</p>
-                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Verifique seu email para confirmação e dicas especiais.</p>
+                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Você será direcionada ao WhatsApp para finalizar.</p>
                     
-                    {(() => {
-                      const linkAvaliacao = gerarLinkAvaliacao(nome, service.name, summary?.date || '', email);
-                      return linkAvaliacao ? (
-                        <a
-                          href={linkAvaliacao}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block mt-2 text-xs font-semibold text-green-700 dark:text-green-300 hover:underline flex items-center gap-1"
-                        >
-                          ⭐ Deixe sua avaliação
-                        </a>
-                      ) : null;
-                    })()}
                   </div>
                 </div>
               </div>
