@@ -140,7 +140,6 @@ export function Booking() {
   const [period, setPeriod] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
@@ -208,11 +207,11 @@ export function Booking() {
         ? PERIODS.find((p) => p.id === period)?.value
         : null
       : time;
-    if (!displayTime || !selected || !summary || !nome.trim() || !telefone.trim()) return "";
+    if (!displayTime || !selected || !summary || !nome.trim()) return "";
     const obs = observacoes.trim();
 
 
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}\nTelefone: ${telefone.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -235,7 +234,6 @@ export function Booking() {
           data: summary.date,
           horario: horarioNormalizado,
           nome: nome.trim(),
-          telefone: telefone.trim(),
           observacoes: observacoes.trim(),
         }),
       }).catch(() => {});
@@ -561,12 +559,6 @@ export function Booking() {
                 className="bg-background text-sm"
               />
               <Input
-                placeholder="Seu telefone (WhatsApp)"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                className="bg-background text-sm"
-              />
-              <Input
                 placeholder="Observações (Opcional)"
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
@@ -577,7 +569,7 @@ export function Booking() {
             {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(((isNatural ? period : time) && nome && telefone && href));
+              const canBook = !!(((isNatural ? period : time) && nome && href));
               
 
               return canBook ? (
