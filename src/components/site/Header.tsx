@@ -60,19 +60,19 @@ export function Header() {
           </button>
         </div>
       </div>
-      {/* Menu mobile: absolute + translateY + opacity - SEM height, SEM max-height */}
+      {/* Menu mobile: dropdown compacto */}
       <div
         ref={menuRef}
-        className={`lg:hidden absolute top-full left-0 right-0 mx-4 border border-border/60 bg-background rounded-2xl shadow-elegant overflow-hidden transition-[opacity,transform] duration-[200ms] ease-out ${open ? "opacity-100 translate-y-2 pointer-events-auto" : "opacity-0 -translate-y-4 pointer-events-none"}`}
+        className={`lg:hidden absolute top-full left-0 right-0 mx-4 border border-border/40 bg-background/90 backdrop-blur-sm rounded-xl shadow-md overflow-hidden transition-[opacity,transform] duration-[190ms] ease-out ${open ? "opacity-100 translate-y-1 pointer-events-auto" : "opacity-0 -translate-y-3 pointer-events-none"}`}
         style={{ willChange: "transform, opacity", zIndex: 999 }}
       >
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex flex-col py-1.5">
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
               onClick={close}
-              className="rounded-xl px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-wine transition-colors duration-150 active:scale-[0.98]"
+              className="px-5 py-2.5 text-sm font-medium text-foreground/70 hover:text-wine hover:bg-wine/5 transition-colors duration-150"
             >
               {l.label}
             </a>
