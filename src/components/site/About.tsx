@@ -3,10 +3,10 @@ import about from "@/assets/mayara preto2.png";
 import { useInView } from "@/hooks/useInView";
 
 const pillars = [
-  { Icon: Sparkles, t: "Bronzeamento Personalizado" },
-  { Icon: ShieldCheck, t: "Produtos Premium e Seguros" },
-  { Icon: Award, t: "Tecnologia e Qualidade" },
-  { Icon: HandHeart, t: "Cuidado que Transforma" },
+  { Icon: Sparkles, t: "Bronzeamento Personalizado", desc: "O tom perfeito e exclusivo para você." },
+  { Icon: ShieldCheck, t: "Produtos Premium e Seguros", desc: "Cuidado e proteção para a sua pele." },
+  { Icon: Award, t: "Tecnologia e Qualidade", desc: "Resultados impecáveis e duradouros." },
+  { Icon: HandHeart, t: "Cuidado que Transforma", desc: "Um ambiente pensado para o seu conforto." },
 ];
 
 export function About() {
@@ -18,15 +18,17 @@ export function About() {
         <div className="order-2 lg:order-1">
           <h2 className="mb-4 text-3xl font-bold text-wine md:text-4xl">Sobre a LA MELANINA</h2>
           <p className="text-foreground/75 text-sm sm:text-base leading-relaxed">
-            A LA MELANINA nasceu para valorizar a beleza natural de cada mulher, oferecendo bronzeamento personalizado, atendimento cuidadoso e um ambiente pensado para autoestima, conforto e bem-estar.
+            Há 6 anos no mercado do bronze, a LA MELANINA nasceu com o propósito de valorizar a beleza natural de cada mulher. Unimos tecnologia e produtos premium a um atendimento baseado no cuidado genuíno, oferecendo uma experiência de bronzeamento personalizada que transforma a autoestima e garante o seu bem-estar.
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {pillars.map(({ Icon, t }) => (
+          <h3 className="mt-6 mb-4 text-xl font-bold text-wine md:text-2xl">Nossos Pilares</h3>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {pillars.map(({ Icon, t, desc }) => (
               <div key={t} className="text-center">
                 <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-2xl bg-accent text-wine">
                   <Icon className="size-5" />
                 </div>
                 <div className="text-xs font-medium text-foreground leading-snug">{t}</div>
+                <p className="mt-1 text-[10px] sm:text-xs text-muted-foreground leading-tight">{desc}</p>
               </div>
             ))}
           </div>
