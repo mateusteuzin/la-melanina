@@ -1,12 +1,25 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+  import { useMemo, useState, useEffect, useRef } from "react";
 import {
-  Sun, Sparkles, Droplet, ChevronLeft, ChevronRight,
-  Calendar, Clock, Info, Send, Flame, Zap, Infinity, AlertCircle,
-  CreditCard, Wind, Mail, Bell, CheckCircle,
+  Sun,
+  Sparkles,
+  Droplet,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Clock,
+  Info,
+  Send,
+  Flame,
+  Zap,
+  Infinity,
+  AlertCircle,
+  CreditCard,
+  Wind,
+  CheckCircle,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
-import { adicionarNewsletterMailchimp, gerarLinkAvaliacao } from "@/lib/mailchimp";
+
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzL1AmdqbO1WprMTL5nZYj98AtMNwF9nQqtETbq0Kppo_Spje7ckQO9z5Bq8XFWNIgX5g/exec";
@@ -127,9 +140,9 @@ export function Booking() {
   const [period, setPeriod] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [newsletter, setNewsletter] = useState(true);
+  const [telefone, setTelefone] = useState("");
   const [observacoes, setObservacoes] = useState("");
+
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
   const submitRef = useRef(false);
 
@@ -190,10 +203,16 @@ export function Booking() {
   }, [selectedDateFormatted, serviceId]);
 
   const buildWhatsappHref = () => {
-    const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
-    if (!displayTime || !selected || !summary || !nome.trim() || !email.trim()) return "";
+    const displayTime = isNatural
+      ? period
+        ? PERIODS.find((p) => p.id === period)?.value
+        : null
+      : time;
+    if (!displayTime || !selected || !summary || !nome.trim() || !telefone.trim()) return "";
     const obs = observacoes.trim();
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}\nEmail: ${email.trim()}`;
+
+
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}\nTelefone: ${telefone.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -206,31 +225,29 @@ export function Booking() {
       return;
     }
     const horarioNormalizado = normalizeTime(displayTime);
-    
+
     try {
-      // Salvar agendamento
+      // Salvar agendamento (somente Google Sheets)
       await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ 
-          servico: service.name, 
-          data: summary.date, 
-          horario: horarioNormalizado, 
+        body: JSON.stringify({
+          servico: service.name,
+          data: summary.date,
+          horario: horarioNormalizado,
           nome: nome.trim(),
-          email: email.trim(),
+          telefone: telefone.trim(),
+          observacoes: observacoes.trim(),
         }),
       }).catch(() => {});
 
-      // Adicionar à newsletter se consentir
-      if (newsletter && email.trim()) {
-        await adicionarNewsletterMailchimp(email.trim(), nome.trim(), service.name, summary.date);
-      }
-
       setAgendamentoConfirmado(true);
     } catch (error) {
-      console.error('Erro ao processar agendamento:', error);
+      console.error("Erro ao processar agendamento:", error);
     }
-    
-    setTimeout(() => { submitRef.current = false; }, 3000);
+
+    setTimeout(() => {
+      submitRef.current = false;
+    }, 3000);
   };
 
   const stepActive = serviceId ? (selected ? (isNatural ? (period ? 3 : 2) : (time ? 3 : 2)) : 1) : 1;
