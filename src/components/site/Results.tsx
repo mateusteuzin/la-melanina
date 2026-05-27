@@ -1,5 +1,6 @@
 import { useInView } from "@/hooks/useInView";
 import resultado1 from "@/assets/resultado 1.png";
+
 import bronzeCabine from "@/assets/bronze cabine.png";
 import modeloGringo from "@/assets/modelo gringo.png";
 
