@@ -31,15 +31,18 @@ export function Results() {
       </div>
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (
-          <div key={it.title} className="group flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant">
-            <div className="relative aspect-[3/4] overflow-hidden">
+          <div
+            key={it.title}
+            className="group flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant sm:h-[560px]"
+          >
+            <div className="relative aspect-[3/4] overflow-hidden sm:aspect-auto sm:h-[88%]">
               <img 
                 src={it.image}
                 alt={it.title}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover object-center"
               />
             </div>
-            <div className="p-4 sm:p-5 text-center">
+            <div className="flex items-center justify-center p-4 sm:p-5 text-center sm:h-[12%]">
               <span className="text-xs sm:text-sm font-medium text-foreground">{it.title}</span>
             </div>
           </div>
