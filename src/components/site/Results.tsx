@@ -15,7 +15,7 @@ const items = [
   },
   { 
     image: modeloGringo,
-    title: "Marquinha Real" 
+    title: "Modelo Gringo" 
   },
 ];
 
