@@ -33,17 +33,17 @@ export function Results() {
         {items.map((it) => (
           <div
             key={it.title}
-            className="group flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant sm:h-[560px]"
+            className="group flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant h-[420px] sm:h-[460px]"
           >
-            <div className="relative aspect-[3/4] overflow-hidden sm:aspect-auto sm:h-[88%]">
+            <div className="relative overflow-hidden h-[88%] rounded-t-2xl sm:rounded-t-3xl">
               <img 
                 src={it.image}
                 alt={it.title}
-                className="h-full w-full object-cover object-center"
+                className="h-full w-full object-cover object-center brightness-[1.06] contrast-[1.08] saturate-[1.08]"
               />
             </div>
-            <div className="flex items-center justify-center p-4 sm:p-5 text-center sm:h-[12%]">
-              <span className="text-xs sm:text-sm font-medium text-foreground">{it.title}</span>
+            <div className="flex items-center justify-center p-3 sm:p-4 text-center h-[12%]">
+              <span className="text-xs sm:text-sm font-medium text-foreground/80 tracking-wide">{it.title}</span>
             </div>
           </div>
         ))}
