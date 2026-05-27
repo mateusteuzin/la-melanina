@@ -1,11 +1,21 @@
-import { Sun, Sparkles, Droplet, ImageOff } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
+import resultado1 from "@/assets/resultado 1.png";
+import bronzeCabine from "@/assets/bronze cabine.png";
+import modeloGringo from "@/assets/modelo gringo.png";
 
 const items = [
-  { label: "Bronze Natural", Icon: Sun },
-  { label: "Resultado Uniforme", Icon: Sparkles },
-  { label: "Pele Iluminada", Icon: Droplet },
-  { label: "Bronze Duradouro", Icon: Sun },
+  { 
+    image: resultado1,
+    title: "Bronze Natural" 
+  },
+  { 
+    image: bronzeCabine,
+    title: "Resultado na Cabine" 
+  },
+  { 
+    image: modeloGringo,
+    title: "Marquinha Real" 
+  },
 ];
 
 export function Results() {
@@ -18,19 +28,18 @@ export function Results() {
           Bronze natural, pele iluminada e autoestima elevada. Veja resultados reais das nossas clientes.
         </p>
       </div>
-      <div className="grid gap-5 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {items.map((it) => (
-          <div key={it.label} className="group overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant">
-            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-accent/60 to-muted flex items-center justify-center">
-              <ImageOff className="size-10 sm:size-14 text-muted-foreground/40" />
-              <div className="absolute inset-x-2 bottom-2 flex justify-between text-[10px] sm:text-xs font-semibold text-wine">
-                <span className="rounded-full bg-background/85 px-2 py-0.5 sm:px-3 sm:py-1">Antes</span>
-                <span className="rounded-full bg-background/85 px-2 py-0.5 sm:px-3 sm:py-1">Depois</span>
-              </div>
+          <div key={it.title} className="group flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant">
+            <div className="relative aspect-[3/4] overflow-hidden">
+              <img 
+                src={it.image}
+                alt={it.title}
+                className="h-full w-full object-cover"
+              />
             </div>
-            <div className="flex items-center gap-2 p-3 sm:p-4">
-              <it.Icon className="size-4 text-bronze shrink-0" />
-              <span className="text-xs sm:text-sm font-medium text-foreground">{it.label}</span>
+            <div className="p-4 sm:p-5 text-center">
+              <span className="text-xs sm:text-sm font-medium text-foreground">{it.title}</span>
             </div>
           </div>
         ))}
