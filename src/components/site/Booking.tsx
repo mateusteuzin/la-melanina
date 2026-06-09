@@ -107,7 +107,7 @@ const PERIODS = [
 ];
 
 // Horários para Bronze em Cabine
-const TIMES_CABINE_MANHA = ["08:00", "09:00", "10:00", "11:00"];
+const TIMES_CABINE_MANHA = ["08:00", "09:00", "10:00", "11:00", "12:00"];
 const TIMES_CABINE_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
 const TIMES_CABINE = [...TIMES_CABINE_MANHA, ...TIMES_CABINE_TARDE];
 
