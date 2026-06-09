@@ -103,11 +103,13 @@ const services: Service[] = [...NATURAL_SERVICES, ...CABINE_SERVICES];
 // Períodos para Bronze Natural
 const PERIODS = [
   { id: "manha", label: "Manhã", time: "08h às 12h", value: "Manhã (08h-12h)" },
+  { id: "tarde", label: "Tarde", time: "15h às 19h", value: "Tarde (15h-19h)" },
 ];
 
 // Horários para Bronze em Cabine
 const TIMES_CABINE_MANHA = ["08:00", "09:00", "10:00", "11:00"];
-const TIMES_CABINE = [...TIMES_CABINE_MANHA];
+const TIMES_CABINE_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
+const TIMES_CABINE = [...TIMES_CABINE_MANHA, ...TIMES_CABINE_TARDE];
 
 const DAYS    = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -432,9 +434,37 @@ export function Booking() {
                     {isCabine && (
                       <div className="mt-4 space-y-3">
                         <div>
-                          <div className="text-xs font-semibold text-foreground mb-2">Horários Disponíveis</div>
+                          <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
                           <div className="grid grid-cols-4 gap-2">
                             {TIMES_CABINE_MANHA.map((t) => {
+                              const horarioNormalizado = normalizeTime(t);
+                              const unavail = bookedTimes.includes(horarioNormalizado);
+                              const sel = time === t;
+                              return (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  disabled={unavail}
+                                  onClick={() => { if (!unavail) setTime(t); }}
+                                  className={`rounded-lg border px-2 py-2 text-xs sm:text-sm font-medium transition-all
+                                    ${unavail
+                                      ? "cursor-not-allowed border-border bg-muted text-muted-foreground/60 opacity-70"
+                                      : sel
+                                        ? "border-wine bg-wine text-wine-foreground shadow-soft"
+                                        : "border-border bg-background text-foreground hover:border-wine/50"
+                                    }`}
+                                >
+                                  {t}
+                                  {unavail && <div className="text-[9px]">Indisponível</div>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {TIMES_CABINE_TARDE.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
