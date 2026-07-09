@@ -1,4 +1,4 @@
-  import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Sun,
   Sparkles,
@@ -16,15 +16,15 @@ import {
   CreditCard,
   Wind,
   CheckCircle,
+  MoonStar,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 
-
 const API_URL =
   "https://script.google.com/macros/s/AKfycbzL1AmdqbO1WprMTL5nZYj98AtMNwF9nQqtETbq0Kppo_Spje7ckQO9z5Bq8XFWNIgX5g/exec";
 
-type ServiceCategory = "natural" | "cabine";
+type ServiceCategory = "natural" | "cabine" | "banho-lua";
 
 type Service = {
   id: string;
@@ -98,18 +98,48 @@ const CABINE_SERVICES: Service[] = [
   },
 ];
 
-const services: Service[] = [...NATURAL_SERVICES, ...CABINE_SERVICES];
+// BANHO DE LUA - Horários individuais
+const BANHO_LUA_SERVICES: Service[] = [
+  {
+    id: "banho-lua-expresso",
+    name: "Banho de lua expresso",
+    duration: "horário",
+    price: "R$ 40,00",
+    desc: "Clareamento rápido para realçar a pele com acabamento iluminado.",
+    Icon: MoonStar,
+    category: "banho-lua"
+  },
+  {
+    id: "banho-lua-clareador",
+    name: "Banho de lua clareador",
+    duration: "horário",
+    price: "R$ 60,00",
+    desc: "Clareamento completo com cuidado extra para um resultado uniforme.",
+    Icon: Sparkles,
+    category: "banho-lua"
+  },
+  {
+    id: "banho-lua-tematico",
+    name: "Banho de lua temático",
+    duration: "horário",
+    price: "R$ 80,00",
+    desc: "Experiência personalizada de banho de lua com finalização especial.",
+    Icon: Sun,
+    category: "banho-lua"
+  },
+];
+
+const services: Service[] = [...NATURAL_SERVICES, ...CABINE_SERVICES, ...BANHO_LUA_SERVICES];
 
 // Períodos para Bronze Natural
 const PERIODS = [
-  { id: "manha", label: "Manhã", time: "08h às 12h", value: "Manhã (08h-12h)" },
+  { id: "manha", label: "Manhã", time: "08h às 11h", value: "Manhã (08h-11h)" },
   { id: "tarde", label: "Tarde", time: "15h às 19h", value: "Tarde (15h-19h)" },
 ];
 
-// Horários para Bronze em Cabine
-const TIMES_CABINE_MANHA = ["08:00", "09:00", "10:00", "11:00", "12:00"];
-const TIMES_CABINE_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
-const TIMES_CABINE = [...TIMES_CABINE_MANHA, ...TIMES_CABINE_TARDE];
+// Horários individuais para Bronze em Cabine e Banho de Lua
+const TIMES_MANHA = ["08:00", "09:00", "10:00", "11:00"];
+const TIMES_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
 
 const DAYS    = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -175,6 +205,8 @@ export function Booking() {
   const serviceCategory = getServiceCategory(serviceId);
   const isNatural = serviceCategory === "natural";
   const isCabine = serviceCategory === "cabine";
+  const isBanhoLua = serviceCategory === "banho-lua";
+  const isTimedService = !isNatural;
   
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
   const selectedDateFormatted = selected ? formatDateBR(selected) : "";
@@ -209,8 +241,6 @@ export function Booking() {
       : time;
     if (!displayTime || !selected || !summary || !nome.trim()) return "";
     const obs = observacoes.trim();
-
-
     const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
@@ -286,7 +316,7 @@ export function Booking() {
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">1. Escolha o serviço</h3>
             
             {/* Bronze Natural */}
-            <div className="mb-6">
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <Wind className="size-5 text-wine" />
                 <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze Natural</h4>
@@ -299,10 +329,10 @@ export function Booking() {
             </div>
 
             {/* Separador Visual */}
-            <div className="my-6 border-t border-border/50" />
+            <div className="my-4 border-t border-border/50" />
 
             {/* Bronze em Cabine */}
-            <div>
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <Droplet className="size-5 text-wine" />
                 <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze em Cabine</h4>
@@ -314,10 +344,26 @@ export function Booking() {
               </div>
             </div>
 
+            {/* Separador Visual */}
+            <div className="my-4 border-t border-border/50" />
+
+            {/* Banho de Lua */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <MoonStar className="size-5 text-wine" />
+                <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Banho de Lua</h4>
+              </div>
+              <div className="space-y-3">
+                {BANHO_LUA_SERVICES.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                ))}
+              </div>
+            </div>
+
             {/* Info Geral */}
-            <div className="mt-6 flex items-start gap-2 rounded-2xl bg-muted/60 p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
+            <div className="mt-4 flex items-start gap-2 rounded-2xl bg-muted/60 p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0" />
-              <span>Todos os serviços incluem preparo de pele e finalização hidratante.</span>
+              <span>Escolha o serviço desejado, selecione data e horário, e finalize pelo WhatsApp.</span>
             </div>
 
             {/* Pagamento */}
@@ -400,6 +446,12 @@ export function Booking() {
                         <span><span className="font-semibold">Atendimento em cabine:</span> Tolerância máxima de 10 minutos de atraso. Após esse prazo, o horário poderá ser remarcado conforme disponibilidade.</span>
                       </div>
                     )}
+                    {isBanhoLua && (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 p-3 text-xs sm:text-sm text-violet-900 dark:text-violet-100">
+                        <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
+                        <span><span className="font-semibold">Banho de Lua:</span> Escolha um dos horários disponíveis para confirmar seu atendimento.</span>
+                      </div>
+                    )}
 
                     {/* Seleção de Períodos (Bronze Natural) */}
                     {isNatural && (
@@ -430,13 +482,13 @@ export function Booking() {
                       </div>
                     )}
 
-                    {/* Seleção de Horários (Bronze em Cabine) */}
-                    {isCabine && (
+                    {/* Seleção de Horários (Bronze em Cabine e Banho de Lua) */}
+                    {isTimedService && (
                       <div className="mt-4 space-y-3">
                         <div>
                           <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {TIMES_CABINE_MANHA.map((t) => {
+                            {TIMES_MANHA.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
@@ -464,7 +516,7 @@ export function Booking() {
                         <div>
                           <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {TIMES_CABINE_TARDE.map((t) => {
+                            {TIMES_TARDE.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
@@ -510,7 +562,7 @@ export function Booking() {
                     <div className="font-semibold text-foreground text-sm sm:text-base">{t}</div>
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       {i === 0
-                        ? "Selecione o bronze ideal para você e suas necessidades."
+                        ? "Selecione o serviço ideal para você e suas necessidades."
                         : i === 1
                           ? "Veja os horários disponíveis e escolha o melhor para você."
                           : "Você será direcionada para o WhatsApp com todos os detalhes do agendamento."}
