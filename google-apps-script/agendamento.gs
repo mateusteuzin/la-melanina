@@ -1,4 +1,4 @@
-const SHEET_NAME = 'Agendamentos';
+const SHEET_NAME = 'Página1';
 
 const SERVICES = {
   'Bronze Praiano': 'R$ 70,00',
@@ -58,22 +58,28 @@ function doPost(e) {
 
     const sheet = getScheduleSheet_();
     ensureHeaders_(sheet);
-    sheet.appendRow([
-      new Date(),
-      nome,
-      servico,
-      SERVICES[servico],
-      data,
-      horario,
-      observacoes,
-      'Pendente',
-      Utilities.getUuid(),
-    ]);
+    const id = Utilities.getUuid();
+    const row = buildBookingRow_(sheet, {
+      servico: servico,
+      data: data,
+      horario: horario,
+      nome: nome,
+      email: String(payload.email || '').trim(),
+      telefone: String(payload.telefone || '').trim(),
+      criado_em: new Date(),
+      chave: id,
+      valor: SERVICES[servico],
+      observacoes: observacoes,
+      status: 'Pendente',
+      id: id,
+    });
+
+    sheet.appendRow(row);
     formatScheduleSheet_(sheet);
 
     return json_({
       success: true,
-      id: sheet.getRange(sheet.getLastRow(), 9).getValue(),
+      id: id,
       status: 'Pendente',
       servico: servico,
       valor: SERVICES[servico],
@@ -88,6 +94,19 @@ function doPost(e) {
       error: error.message,
     });
   }
+}
+
+function buildBookingRow_(sheet, values) {
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0];
+
+  return headers.map(function(header) {
+    const key = normalizeHeader_(header);
+    return Object.prototype.hasOwnProperty.call(values, key)
+      ? values[key]
+      : '';
+  });
 }
 
 function validateBooking_(servico, nome, data, horario) {
@@ -113,8 +132,8 @@ function getScheduleSheet_() {
 
 function ensureHeaders_(sheet) {
   const requiredHeaders = [
-    'Criado em', 'Nome', 'Servico', 'Valor', 'Data',
-    'Horario', 'Observacoes', 'Status', 'ID',
+    'Servico', 'Data', 'Horario', 'Nome', 'Email', 'Telefone',
+    'Criado em', 'Chave', 'Valor', 'Observacoes', 'Status', 'ID',
   ];
 
   if (sheet.getLastRow() === 0) {
