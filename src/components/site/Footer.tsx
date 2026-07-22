@@ -64,8 +64,28 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-border bg-wine py-4 text-center text-xs text-wine-foreground/80">
-        © 2026 LA MELANINA. Todos os direitos reservados.
+      <div className="border-t border-border bg-wine">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-4 text-center text-xs text-wine-foreground/80 sm:flex-row sm:text-left">
+          <span>© 2026 LA MELANINA. Todos os direitos reservados.</span>
+          <a
+            href="https://www.instagram.com/mateusalves.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Desenvolvido por Mateus Alves — abrir Instagram"
+            className="group inline-grid grid-cols-[auto_auto] items-center gap-x-2 gap-y-0.5 no-underline transition duration-200 hover:-translate-y-0.5 hover:opacity-90"
+          >
+            <span className="row-span-2 text-[9px] font-medium uppercase tracking-[0.14em] text-wine-foreground/55">
+              Desenvolvido por
+            </span>
+            <span className="text-[17px] font-bold leading-none tracking-[-0.04em] text-white">
+              <span className="font-serif italic font-medium text-sky-300">Mateus</span>{" "}
+              Alves
+            </span>
+            <span className="text-[7px] font-semibold leading-none tracking-[0.22em] text-wine-foreground/50">
+              WEB DESIGN · DADOS
+            </span>
+          </a>
+        </div>
       </div>
     </footer>
   );
