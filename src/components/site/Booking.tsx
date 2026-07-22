@@ -22,7 +22,7 @@ import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzL1AmdqbO1WprMTL5nZYj98AtMNwF9nQqtETbq0Kppo_Spje7ckQO9z5Bq8XFWNIgX5g/exec";
+  "https://script.google.com/macros/s/AKfycbwtkX_NJRWbuI9Kc6HaV055BXjViR833HhZQ-6bJVwRrsmJ3Bxg1p_AKRjGYLlDAeSFnw/exec";
 
 type ServiceCategory = "natural" | "cabine" | "banho-lua";
 
