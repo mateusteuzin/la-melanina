@@ -153,6 +153,22 @@ function formatDateBR(date: Date) {
 function normalizeTime(value: string) {
   const v = String(value || "").trim();
   if (/^\d:\d{2}$/.test(v)) return `0${v}`;
+  if (/^\d{2}:\d{2}$/.test(v)) return v;
+
+  // O Google Sheets devolve células antigas de horário como datas de 1899.
+  // Formatar no fuso original recupera 08:00, 09:00 etc. sem exigir
+  // que os agendamentos antigos sejam recriados.
+  if (/^1899-\d{2}-\d{2}T/.test(v)) {
+    const legacyTime = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(v));
+
+    return legacyTime;
+  }
+
   const isoTime = v.match(/T(\d{2}):(\d{2})/);
   if (isoTime) return `${isoTime[1]}:${isoTime[2]}`;
   return v;
