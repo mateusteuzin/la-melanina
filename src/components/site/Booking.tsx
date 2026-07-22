@@ -153,7 +153,7 @@ function formatDateBR(date: Date) {
 function normalizeTime(value: string) {
   const v = String(value || "").trim();
   if (/^\d:\d{2}$/.test(v)) return `0${v}`;
-  const isoTime = v.match(/T(\\d{2}):(\\d{2})/);
+  const isoTime = v.match(/T(\d{2}):(\d{2})/);
   if (isoTime) return `${isoTime[1]}:${isoTime[2]}`;
   return v;
 }
