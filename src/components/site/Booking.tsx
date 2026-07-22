@@ -274,8 +274,15 @@ export function Booking() {
     const horarioNormalizado = normalizeTime(displayTime);
 
     try {
-      // Salvar agendamento (somente Google Sheets)
-      await fetch(API_URL, {
+      const horariosAtualizados = await fetchAgendamentos(summary.date);
+      if (horariosAtualizados.includes(horarioNormalizado)) {
+        setTime(null);
+        submitRef.current = false;
+        window.alert("Esse horário acabou de ser ocupado. Escolha outro horário.");
+        return;
+      }
+
+      const response = await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({
           servico: service.name,
@@ -284,11 +291,24 @@ export function Booking() {
           nome: nome.trim(),
           observacoes: observacoes.trim(),
         }),
-      }).catch(() => {});
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        setTime(null);
+        submitRef.current = false;
+        await fetchAgendamentos(summary.date);
+        window.alert(result.error || "Esse horário não está mais disponível.");
+        return;
+      }
 
       setAgendamentoConfirmado(true);
+      await fetchAgendamentos(summary.date);
     } catch (error) {
       console.error("Erro ao processar agendamento:", error);
+      submitRef.current = false;
+      window.alert("Não foi possível confirmar o agendamento. Tente novamente.");
+      return;
     }
 
     setTimeout(() => {
