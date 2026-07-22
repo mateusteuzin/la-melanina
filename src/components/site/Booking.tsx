@@ -215,10 +215,14 @@ export function Booking() {
   const normalizeApiDate = (value: unknown) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
-    const brDate = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})/);
+
+    const brDate = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
     if (brDate) return raw.slice(0, 10);
-    const isoDate = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
-    return isoDate ? \`${isoDate[3]}/${isoDate[2]}/${isoDate[1]}\` : raw;
+
+    const isoDate = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return isoDate
+      ? isoDate[3] + "/" + isoDate[2] + "/" + isoDate[1]
+      : raw;
   };
 
   const fetchAgendamentos = async (dateStr: string) => {
