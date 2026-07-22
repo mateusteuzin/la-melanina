@@ -212,13 +212,25 @@ export function Booking() {
   const selectedDateFormatted = selected ? formatDateBR(selected) : "";
   const summary = selected ? { date: selectedDateFormatted, weekday: WEEKDAYS[selected.getDay()] } : null;
 
+  const normalizeApiDate = (value: unknown) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const brDate = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})/);
+    if (brDate) return raw.slice(0, 10);
+    const isoDate = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+    return isoDate ? \`${isoDate[3]}/${isoDate[2]}/${isoDate[1]}\` : raw;
+  };
+
   const fetchAgendamentos = async (dateStr: string) => {
     try {
       const response = await fetch(`${API_URL}?nocache=${Date.now()}`);
       const data = await response.json();
       if (!Array.isArray(data)) { setBookedTimes([]); return []; }
       const horariosOcupados = data
-        .filter((item: any) => String(item.data || "").trim() === dateStr)
+        .filter((item: any) =>
+          normalizeApiDate(item.data) === dateStr &&
+          String(item.status || "Pendente").toLowerCase() !== "cancelado"
+        )
         .map((item: any) => normalizeTime(item.horario));
       setBookedTimes(horariosOcupados);
       if (time && horariosOcupados.includes(normalizeTime(time))) setTime(null);
