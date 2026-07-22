@@ -150,14 +150,19 @@ function ensureHeaders_(sheet) {
 
     const statusColumn = normalized.indexOf('status') + 1;
     const idColumn = normalized.indexOf('id') + 1;
+    const valorColumn = normalized.indexOf('valor') + 1;
+    const servicoColumn = normalized.indexOf('servico') + 1;
     const firstDataRow = 2;
     const rowCount = sheet.getLastRow() - 1;
 
     if (rowCount > 0) {
       const statusValues = sheet.getRange(firstDataRow, statusColumn, rowCount, 1).getValues();
       const idValues = sheet.getRange(firstDataRow, idColumn, rowCount, 1).getValues();
+      const valorValues = sheet.getRange(firstDataRow, valorColumn, rowCount, 1).getValues();
+      const servicoValues = sheet.getRange(firstDataRow, servicoColumn, rowCount, 1).getValues();
       let statusChanged = false;
       let idChanged = false;
+      let valorChanged = false;
 
       statusValues.forEach(function(row) {
         if (!row[0]) {
@@ -172,8 +177,17 @@ function ensureHeaders_(sheet) {
         }
       });
 
+      valorValues.forEach(function(row, index) {
+        const servico = String(servicoValues[index][0] || '').trim();
+        if (!row[0] && SERVICES[servico]) {
+          row[0] = SERVICES[servico];
+          valorChanged = true;
+        }
+      });
+
       if (statusChanged) sheet.getRange(firstDataRow, statusColumn, rowCount, 1).setValues(statusValues);
       if (idChanged) sheet.getRange(firstDataRow, idColumn, rowCount, 1).setValues(idValues);
+      if (valorChanged) sheet.getRange(firstDataRow, valorColumn, rowCount, 1).setValues(valorValues);
     }
   }
 
