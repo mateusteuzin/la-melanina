@@ -233,13 +233,13 @@ function normalizeHeader_(header) {
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g, '')
-    .replace(/\\s+/g, '_');
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '_');
 }
 
 function normalizeTime_(value) {
   const time = String(value || '').trim();
-  return /^\\d:\\d{2}$/.test(time) ? '0' + time : time;
+  return /^\d:\d{2}$/.test(time) ? '0' + time : time;
 }
 
 function json_(data) {
