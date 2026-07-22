@@ -37,7 +37,10 @@ function doGet() {
   const data = rows.slice(1).map(function(row) {
     const item = {};
     headers.forEach(function(header, index) {
-      item[header] = row[index];
+      let value = row[index];
+      if (header === 'data') value = formatSheetDate_(value, sheet);
+      if (header === 'horario') value = formatSheetTime_(value, sheet);
+      item[header] = value;
     });
     return item;
   });
@@ -58,6 +61,7 @@ function doPost(e) {
 
     const sheet = getScheduleSheet_();
     ensureHeaders_(sheet);
+    assertSlotAvailable_(sheet, data, horario);
     const id = Utilities.getUuid();
     const row = buildBookingRow_(sheet, {
       servico: servico,
@@ -94,6 +98,58 @@ function doPost(e) {
       error: error.message,
     });
   }
+}
+
+function assertSlotAvailable_(sheet, data, horario) {
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return;
+
+  const headers = rows[0].map(normalizeHeader_);
+  const dataColumn = headers.indexOf('data');
+  const horarioColumn = headers.indexOf('horario');
+  const statusColumn = headers.indexOf('status');
+
+  const ocupado = rows.slice(1).some(function(row) {
+    const rowData = formatSheetDate_(row[dataColumn], sheet);
+    const rowHorario = formatSheetTime_(row[horarioColumn], sheet);
+    const rowStatus = statusColumn >= 0
+      ? String(row[statusColumn] || 'Pendente').trim().toLowerCase()
+      : 'pendente';
+
+    return rowData === data &&
+      rowHorario === horario &&
+      rowStatus !== 'cancelado';
+  });
+
+  if (ocupado) {
+    throw new Error('Este horario ja esta ocupado.');
+  }
+}
+
+function formatSheetDate_(value, sheet) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(
+      value,
+      sheet.getParent().getSpreadsheetTimeZone(),
+      'dd/MM/yyyy'
+    );
+  }
+
+  const raw = String(value || '').trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? iso[3] + '/' + iso[2] + '/' + iso[1] : raw.slice(0, 10);
+}
+
+function formatSheetTime_(value, sheet) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(
+      value,
+      sheet.getParent().getSpreadsheetTimeZone(),
+      'HH:mm'
+    );
+  }
+
+  return normalizeTime_(value);
 }
 
 function buildBookingRow_(sheet, values) {
