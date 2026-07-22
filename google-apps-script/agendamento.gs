@@ -195,7 +195,7 @@ function ensureHeaders_(sheet) {
 }
 
 function formatScheduleSheet_(sheet) {
-  const lastColumn = Math.max(sheet.getLastColumn(), 9);
+  const lastColumn = Math.max(sheet.getLastColumn(), 12);
   const lastRow = Math.max(sheet.getLastRow(), 1);
   const header = sheet.getRange(1, 1, 1, lastColumn);
 
@@ -204,28 +204,103 @@ function formatScheduleSheet_(sheet) {
     .setFontColor('#ffffff')
     .setFontWeight('bold')
     .setHorizontalAlignment('center')
-    .setVerticalAlignment('middle');
-  header.setWrap(true);
+    .setVerticalAlignment('middle')
+    .setWrap(true);
+
   sheet.setFrozenRows(1);
-  sheet.setRowHeight(1, 36);
+  sheet.setRowHeight(1, 38);
+
+  const widths = [190, 110, 110, 180, 190, 135, 155, 170, 105, 220, 120, 170];
+  widths.forEach(function(width, index) {
+    sheet.setColumnWidth(index + 1, width);
+  });
 
   if (lastRow > 1) {
-    const body = sheet.getRange(2, 1, lastRow - 1, lastColumn);
-    body.setVerticalAlignment('middle');
-    body.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    const rowCount = lastRow - 1;
+    const body = sheet.getRange(2, 1, rowCount, lastColumn);
 
+    body
+      .setVerticalAlignment('middle')
+      .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+
+    sheet.setRowHeights(2, rowCount, 42);
+
+    const dataColumn = findHeaderColumn_(sheet, 'data');
+    const horarioColumn = findHeaderColumn_(sheet, 'horario');
+    const criadoColumn = findHeaderColumn_(sheet, 'criado_em');
+    const nomeColumn = findHeaderColumn_(sheet, 'nome');
+    const observacoesColumn = findHeaderColumn_(sheet, 'observacoes');
+    const valorColumn = findHeaderColumn_(sheet, 'valor');
     const statusColumn = findHeaderColumn_(sheet, 'status');
+
+    if (dataColumn) {
+      sheet.getRange(2, dataColumn, rowCount, 1)
+        .setNumberFormat('dd/MM/yyyy')
+        .setHorizontalAlignment('center');
+    }
+
+    if (horarioColumn) {
+      sheet.getRange(2, horarioColumn, rowCount, 1)
+        .setNumberFormat('HH:mm')
+        .setHorizontalAlignment('center');
+    }
+
+    if (criadoColumn) {
+      sheet.getRange(2, criadoColumn, rowCount, 1)
+        .setNumberFormat('dd/MM/yyyy HH:mm')
+        .setHorizontalAlignment('center');
+    }
+
+    if (nomeColumn) {
+      sheet.getRange(2, nomeColumn, rowCount, 1)
+        .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    }
+
+    if (observacoesColumn) {
+      sheet.getRange(2, observacoesColumn, rowCount, 1)
+        .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    }
+
+    if (valorColumn) {
+      sheet.getRange(2, valorColumn, rowCount, 1)
+        .setHorizontalAlignment('center')
+        .setFontWeight('bold');
+    }
+
     if (statusColumn) {
-      const statusRange = sheet.getRange(2, statusColumn, lastRow - 1, 1);
-      const rule = SpreadsheetApp.newDataValidation()
+      const statusRange = sheet.getRange(2, statusColumn, rowCount, 1);
+      const validation = SpreadsheetApp.newDataValidation()
         .requireValueInList(STATUS_OPTIONS, true)
         .setAllowInvalid(false)
         .build();
-      statusRange.setDataValidation(rule);
-      statusRange.setHorizontalAlignment('center');
-      statusRange.setFontWeight('bold');
-      statusRange.setFontColor('#5b1830');
-      statusRange.setBackground('#fff2cc');
+
+      statusRange
+        .setDataValidation(validation)
+        .setHorizontalAlignment('center')
+        .setFontWeight('bold');
+
+      const rules = [
+        SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo('Pendente')
+          .setBackground('#fff2cc')
+          .setFontColor('#7f6000')
+          .setRanges([statusRange])
+          .build(),
+        SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo('Confirmado')
+          .setBackground('#d9ead3')
+          .setFontColor('#274e13')
+          .setRanges([statusRange])
+          .build(),
+        SpreadsheetApp.newConditionalFormatRule()
+          .whenTextEqualTo('Cancelado')
+          .setBackground('#f4cccc')
+          .setFontColor('#990000')
+          .setRanges([statusRange])
+          .build(),
+      ];
+
+      sheet.setConditionalFormatRules(rules);
     }
 
     if (!sheet.getFilter()) {
@@ -233,10 +308,10 @@ function formatScheduleSheet_(sheet) {
     }
   }
 
-  const widths = [150, 180, 190, 100, 110, 110, 260, 125, 230];
-  widths.forEach(function(width, index) {
-    sheet.setColumnWidth(index + 1, width);
-  });
+  const chaveColumn = findHeaderColumn_(sheet, 'chave');
+  const idColumn = findHeaderColumn_(sheet, 'id');
+  if (chaveColumn) sheet.hideColumns(chaveColumn);
+  if (idColumn) sheet.hideColumns(idColumn);
 }
 
 function findHeaderColumn_(sheet, headerName) {
