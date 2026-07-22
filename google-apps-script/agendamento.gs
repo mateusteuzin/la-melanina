@@ -13,15 +13,8 @@ const SERVICES = {
 };
 
 const ALLOWED_TIMES = [
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
+  '08:00', '09:00', '10:00', '11:00',
+  '15:00', '16:00', '17:00', '18:00', '19:00',
 ];
 
 const ALLOWED_PERIODS = [
@@ -29,8 +22,11 @@ const ALLOWED_PERIODS = [
   'Tarde (15h-19h)',
 ];
 
+const STATUS_OPTIONS = ['Pendente', 'Confirmado', 'Cancelado'];
+
 function doGet() {
   const sheet = getScheduleSheet_();
+  ensureHeaders_(sheet);
   const rows = sheet.getDataRange().getValues();
   if (rows.length <= 1) return json_([]);
 
@@ -70,10 +66,15 @@ function doPost(e) {
       data,
       horario,
       observacoes,
+      'Pendente',
+      Utilities.getUuid(),
     ]);
+    formatScheduleSheet_(sheet);
 
     return json_({
       success: true,
+      id: sheet.getRange(sheet.getLastRow(), 9).getValue(),
+      status: 'Pendente',
       servico: servico,
       valor: SERVICES[servico],
       nome: nome,
@@ -90,15 +91,9 @@ function doPost(e) {
 }
 
 function validateBooking_(servico, nome, data, horario) {
-  if (!SERVICES[servico]) {
-    throw new Error('Servico nao permitido.');
-  }
-  if (!nome) {
-    throw new Error('Nome obrigatorio.');
-  }
-  if (!data) {
-    throw new Error('Data obrigatoria.');
-  }
+  if (!SERVICES[servico]) throw new Error('Servico nao permitido.');
+  if (!nome) throw new Error('Nome obrigatorio.');
+  if (!data) throw new Error('Data obrigatoria.');
   if (!ALLOWED_TIMES.includes(horario) && !ALLOWED_PERIODS.includes(horario)) {
     throw new Error('Horario nao permitido.');
   }
@@ -117,16 +112,120 @@ function getScheduleSheet_() {
 }
 
 function ensureHeaders_(sheet) {
-  if (sheet.getLastRow() > 0) return;
-  sheet.appendRow([
-    'Criado em',
-    'Nome',
-    'Servico',
-    'Valor',
-    'Data',
-    'Horario',
-    'Observacoes',
-  ]);
+  const requiredHeaders = [
+    'Criado em', 'Nome', 'Servico', 'Valor', 'Data',
+    'Horario', 'Observacoes', 'Status', 'ID',
+  ];
+
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+  } else {
+    const currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+    const normalized = currentHeaders.map(normalizeHeader_);
+    requiredHeaders.forEach(function(header) {
+      if (normalized.indexOf(normalizeHeader_(header)) === -1) {
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+        normalized.push(normalizeHeader_(header));
+      }
+    });
+
+    const statusColumn = normalized.indexOf('status') + 1;
+    const idColumn = normalized.indexOf('id') + 1;
+    const firstDataRow = 2;
+    const rowCount = sheet.getLastRow() - 1;
+
+    if (rowCount > 0) {
+      const statusValues = sheet.getRange(firstDataRow, statusColumn, rowCount, 1).getValues();
+      const idValues = sheet.getRange(firstDataRow, idColumn, rowCount, 1).getValues();
+      let statusChanged = false;
+      let idChanged = false;
+
+      statusValues.forEach(function(row) {
+        if (!row[0]) {
+          row[0] = 'Pendente';
+          statusChanged = true;
+        }
+      });
+      idValues.forEach(function(row) {
+        if (!row[0]) {
+          row[0] = Utilities.getUuid();
+          idChanged = true;
+        }
+      });
+
+      if (statusChanged) sheet.getRange(firstDataRow, statusColumn, rowCount, 1).setValues(statusValues);
+      if (idChanged) sheet.getRange(firstDataRow, idColumn, rowCount, 1).setValues(idValues);
+    }
+  }
+
+  formatScheduleSheet_(sheet);
+}
+
+function formatScheduleSheet_(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 9);
+  const lastRow = Math.max(sheet.getLastRow(), 1);
+  const header = sheet.getRange(1, 1, 1, lastColumn);
+
+  header
+    .setBackground('#5b1830')
+    .setFontColor('#ffffff')
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+  header.setWrap(true);
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 36);
+
+  if (lastRow > 1) {
+    const body = sheet.getRange(2, 1, lastRow - 1, lastColumn);
+    body.setVerticalAlignment('middle');
+    body.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+    const statusColumn = findHeaderColumn_(sheet, 'status');
+    if (statusColumn) {
+      const statusRange = sheet.getRange(2, statusColumn, lastRow - 1, 1);
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(STATUS_OPTIONS, true)
+        .setAllowInvalid(false)
+        .build();
+      statusRange.setDataValidation(rule);
+      statusRange.setHorizontalAlignment('center');
+      statusRange.setFontWeight('bold');
+      statusRange.setFontColor('#5b1830');
+      statusRange.setBackground('#fff2cc');
+    }
+
+    if (!sheet.getFilter()) {
+      sheet.getRange(1, 1, lastRow, lastColumn).createFilter();
+    }
+  }
+
+  const widths = [150, 180, 190, 100, 110, 110, 260, 125, 230];
+  widths.forEach(function(width, index) {
+    sheet.setColumnWidth(index + 1, width);
+  });
+}
+
+function findHeaderColumn_(sheet, headerName) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const target = normalizeHeader_(headerName);
+  for (let index = 0; index < headers.length; index += 1) {
+    if (normalizeHeader_(headers[index]) === target) return index + 1;
+  }
+  return 0;
+}
+
+function configurarAgendamentos() {
+  const sheet = getScheduleSheet_();
+  ensureHeaders_(sheet);
+  SpreadsheetApp.getActive().toast('Planilha de agendamentos configurada.');
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Agendamentos')
+    .addItem('Organizar planilha', 'configurarAgendamentos')
+    .addToUi();
 }
 
 function normalizeHeader_(header) {
@@ -134,13 +233,13 @@ function normalizeHeader_(header) {
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '_');
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/\\s+/g, '_');
 }
 
 function normalizeTime_(value) {
   const time = String(value || '').trim();
-  return /^\d:\d{2}$/.test(time) ? '0' + time : time;
+  return /^\\d:\\d{2}$/.test(time) ? '0' + time : time;
 }
 
 function json_(data) {
