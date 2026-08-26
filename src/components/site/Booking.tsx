@@ -159,6 +159,14 @@ const ADDITIONAL_SERVICES: AddOn[] = [
     desc: "Feita com adesivo solar para deixar a marquinha da tattoo na pele.",
     Icon: Sun,
   },
+  {
+    id: "intensificacao-alcinha",
+    name: "Intensificação de Alcinha",
+    duration: "adicional",
+    price: "R$ 15,00",
+    desc: "Aplicação de jato na alcinha para deixar a marquinha mais intensa.",
+    Icon: Zap,
+  },
 ];
 
 const services: Service[] = [

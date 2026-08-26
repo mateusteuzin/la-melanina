@@ -60,7 +60,7 @@ export function BookingPolicyModal() {
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Reserva protegida</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                  Em solicitações feitas com menos de 24 horas, o depósito não será reembolsado, pois garante a exclusividade do horário reservado.
+                  O agendamento é confirmado mediante pagamento de sinal, que garante a reserva do seu horário. Em caso de cancelamento ou reagendamento com menos de 24 horas de antecedência, o sinal não será reembolsado.
                 </p>
               </div>
             </div>
