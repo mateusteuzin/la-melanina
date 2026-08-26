@@ -19,11 +19,10 @@ export function Header() {
   const toggle = useCallback(() => setOpen((v) => !v), []);
   const close = useCallback(() => setOpen(false), []);
 
-  // Fecha ao clicar fora do menu
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    const handleClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
@@ -34,24 +33,28 @@ export function Header() {
   return (
     <header className="relative sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="container mx-auto flex h-28 items-center justify-between px-4">
-        <a href="#inicio" className="text-wine transition-transform duration-200 hover:scale-105 active:scale-95"><Logo height={88} /></a>
-        <nav className="hidden lg:flex items-center gap-8">
-          {links.map((l) => (
+        <a href="#inicio" className="text-wine transition-transform duration-200 hover:scale-105 active:scale-95">
+          <Logo height={88} />
+        </a>
+        <nav className="hidden items-center gap-8 lg:flex">
+          {links.map((link) => (
             <a
-              key={l.href}
-              href={l.href}
-              className="relative text-sm font-medium text-foreground/80 transition-colors duration-200 hover:text-wine after:absolute after:bottom-[-3px] after:left-0 after:h-[2px] after:w-0 after:bg-wine after:transition-all after:duration-200 hover:after:w-full"
+              key={link.href}
+              href={link.href}
+              className="relative text-sm font-medium text-foreground/80 transition-colors duration-200 after:absolute after:bottom-[-3px] after:left-0 after:h-[2px] after:w-0 after:bg-wine after:transition-all after:duration-200 hover:text-wine hover:after:w-full"
             >
-              {l.label}
+              {link.label}
             </a>
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Button asChild className="hidden sm:inline-flex bg-wine text-wine-foreground hover:bg-wine/90 rounded-full px-6 shadow-soft transition-transform duration-200 hover:scale-105 hover:shadow-md active:scale-95">
-            <a href="#agendar" className="flex items-center gap-2"><WhatsappIcon className="size-4" /> AGENDAR</a>
+          <Button asChild className="hidden rounded-full bg-wine px-6 text-wine-foreground shadow-soft transition-transform duration-200 hover:scale-105 hover:bg-wine/90 hover:shadow-md active:scale-95 sm:inline-flex">
+            <a href="#agendar" className="flex items-center gap-2">
+              <WhatsappIcon className="size-4" /> AGENDAR
+            </a>
           </Button>
           <button
-            className="lg:hidden text-wine transition-transform duration-200 hover:scale-110 active:scale-90"
+            className="text-wine transition-transform duration-200 hover:scale-110 active:scale-90 lg:hidden"
             onClick={toggle}
             aria-label="Menu"
             aria-expanded={open}
@@ -60,21 +63,22 @@ export function Header() {
           </button>
         </div>
       </div>
-      {/* Menu mobile: dropdown compacto */}
+
       <div
         ref={menuRef}
-        className={`lg:hidden absolute top-full left-0 right-0 mx-4 border border-border/40 bg-background/90 backdrop-blur-sm rounded-xl shadow-md overflow-hidden transition-[opacity,transform] duration-[190ms] ease-out ${open ? "opacity-100 translate-y-1 pointer-events-auto" : "opacity-0 -translate-y-3 pointer-events-none"}`}
-        style={{ willChange: "transform, opacity", zIndex: 999 }}
+        className={`absolute left-0 right-0 top-full z-[999] mx-4 overflow-hidden rounded-xl border border-border/40 bg-background/90 shadow-md backdrop-blur-sm transition-[opacity,transform] duration-[190ms] ease-out lg:hidden ${
+          open ? "pointer-events-auto translate-y-1 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+        }`}
       >
         <nav className="flex flex-col py-1.5">
-          {links.map((l) => (
+          {links.map((link) => (
             <a
-              key={l.href}
-              href={l.href}
+              key={link.href}
+              href={link.href}
               onClick={close}
-              className="px-5 py-2.5 text-sm font-medium text-foreground/70 hover:text-wine hover:bg-wine/5 transition-colors duration-150"
+              className="px-5 py-2.5 text-sm font-medium text-foreground/70 transition-colors duration-150 hover:bg-wine/5 hover:text-wine"
             >
-              {l.label}
+              {link.label}
             </a>
           ))}
         </nav>

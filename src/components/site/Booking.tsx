@@ -17,14 +17,18 @@ import {
   Wind,
   CheckCircle,
   MoonStar,
+  MapPin,
+  Leaf,
+  Paintbrush,
 } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const API_URL =
   "https://script.google.com/macros/s/AKfycbwtkX_NJRWbuI9Kc6HaV055BXjViR833HhZQ-6bJVwRrsmJ3Bxg1p_AKRjGYLlDAeSFnw/exec";
 
-type ServiceCategory = "natural" | "cabine" | "banho-lua";
+type ServiceCategory = "natural" | "cabine" | "clareamento";
 
 type Service = {
   id: string;
@@ -36,13 +40,15 @@ type Service = {
   category: ServiceCategory;
 };
 
+type AddOn = Omit<Service, "category">;
+
 // BRONZE NATURAL - Períodos
 const NATURAL_SERVICES: Service[] = [
   { 
-    id: "praiano", 
-    name: "Bronze Praiano", 
-    duration: "período", 
-    price: "R$ 70,00", 
+    id: "bronze-turbo",
+    name: "Bronze Turbo",
+    duration: "período",
+    price: "R$ 75,00",
     desc: "Parafina, 2 ativadores e banho de lua clareador.",
     Icon: Sun,
     category: "natural"
@@ -98,38 +104,68 @@ const CABINE_SERVICES: Service[] = [
   },
 ];
 
-// BANHO DE LUA - Horários individuais
-const BANHO_LUA_SERVICES: Service[] = [
+// CLAREAMENTO - Horários individuais
+const CLAREAMENTO_SERVICES: Service[] = [
   {
-    id: "banho-lua-expresso",
-    name: "Banho de lua expresso",
+    id: "clareamento-corporal",
+    name: "Clareamento Corporal",
     duration: "horário",
-    price: "R$ 40,00",
-    desc: "Clareamento rápido para realçar a pele com acabamento iluminado.",
+    price: "R$ 35,00",
+    desc: "Clareamento para todo o corpo, incluindo o rosto.",
     Icon: MoonStar,
-    category: "banho-lua"
+    category: "clareamento"
   },
   {
     id: "banho-lua-clareador",
-    name: "Banho de lua clareador",
+    name: "Banho de Lua Clareador",
     duration: "horário",
-    price: "R$ 60,00",
-    desc: "Clareamento completo com cuidado extra para um resultado uniforme.",
+    price: "R$ 75,00",
+    desc: "Banho de lua com ação clareadora para realçar a pele e proporcionar um acabamento uniforme e iluminado.",
     Icon: Sparkles,
-    category: "banho-lua"
-  },
-  {
-    id: "banho-lua-tematico",
-    name: "Banho de lua temático",
-    duration: "horário",
-    price: "R$ 80,00",
-    desc: "Experiência personalizada de banho de lua com finalização especial.",
-    Icon: Sun,
-    category: "banho-lua"
+    category: "clareamento",
   },
 ];
 
-const services: Service[] = [...NATURAL_SERVICES, ...CABINE_SERVICES, ...BANHO_LUA_SERVICES];
+const ADDITIONAL_SERVICES: AddOn[] = [
+  {
+    id: "clareamento-area",
+    name: "Clareamento de Área",
+    duration: "1 região",
+    price: "R$ 10,00",
+    desc: "Clareamento de apenas uma região: virilha, axila ou outra área específica de sua escolha.",
+    Icon: MapPin,
+  },
+  {
+    id: "argiloterapia-facial",
+    name: "Argiloterapia Facial",
+    duration: "adicional",
+    price: "R$ 10,00",
+    desc: "Tratamento à base de argila, rica em minerais, com ação antioxidante e antisséptica. Ajuda a desinflamar, remover impurezas e desintoxicar a pele.",
+    Icon: Leaf,
+  },
+  {
+    id: "tatuagem-temporaria",
+    name: "Tatuagem Temporária",
+    duration: "adicional",
+    price: "R$ 5,00",
+    desc: "Tatuagem não permanente, aplicada com água, ideal para mudar o visual ou testar uma arte sem compromisso.",
+    Icon: Paintbrush,
+  },
+  {
+    id: "tattoo-solar",
+    name: "Tattoo Solar",
+    duration: "adicional",
+    price: "R$ 5,00",
+    desc: "Feita com adesivo solar para deixar a marquinha da tattoo na pele.",
+    Icon: Sun,
+  },
+];
+
+const services: Service[] = [
+  ...NATURAL_SERVICES,
+  ...CABINE_SERVICES,
+  ...CLAREAMENTO_SERVICES,
+];
 
 // Períodos para Bronze Natural
 const PERIODS = [
@@ -137,7 +173,7 @@ const PERIODS = [
   { id: "tarde", label: "Tarde", time: "15h às 19h", value: "Tarde (15h-19h)" },
 ];
 
-// Horários individuais para Bronze em Cabine e Banho de Lua
+// Horários individuais para Bronze em Cabine e Clareamento
 const TIMES_MANHA = ["08:00", "09:00", "10:00", "11:00"];
 const TIMES_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
 
@@ -179,8 +215,16 @@ function getServiceCategory(serviceId: string): ServiceCategory {
   return service?.category || "natural";
 }
 
+function priceToNumber(price: string) {
+  return Number(price.replace(/[^\d,]/g, "").replace(",", "."));
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export function Booking() {
-  const [serviceId, setServiceId] = useState<string>("praiano");
+  const [serviceId, setServiceId] = useState<string>("bronze-turbo");
   const today = new Date();
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState<Date | null>(() => new Date());
@@ -189,6 +233,7 @@ export function Booking() {
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [selectedAddOnIds, setSelectedAddOnIds] = useState<string[]>([]);
 
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
   const submitRef = useRef(false);
@@ -223,8 +268,18 @@ export function Booking() {
   const serviceCategory = getServiceCategory(serviceId);
   const isNatural = serviceCategory === "natural";
   const isCabine = serviceCategory === "cabine";
-  const isBanhoLua = serviceCategory === "banho-lua";
+  const isClareamento = serviceCategory === "clareamento";
   const isTimedService = !isNatural;
+  const selectedAddOns = ADDITIONAL_SERVICES.filter((addOn) => selectedAddOnIds.includes(addOn.id));
+  const totalPrice = formatCurrency(
+    priceToNumber(service.price) + selectedAddOns.reduce((total, addOn) => total + priceToNumber(addOn.price), 0),
+  );
+
+  const toggleAddOn = (addOnId: string, checked: boolean) => {
+    setSelectedAddOnIds((current) =>
+      checked ? [...current, addOnId] : current.filter((id) => id !== addOnId),
+    );
+  };
   
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
   const selectedDateFormatted = selected ? formatDateBR(selected) : "";
@@ -275,7 +330,10 @@ export function Booking() {
       : time;
     if (!displayTime || !selected || !summary || !nome.trim()) return "";
     const obs = observacoes.trim();
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const addOnsText = selectedAddOns.length
+      ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
+      : "";
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.${addOnsText}\nValor total: ${totalPrice}\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -301,7 +359,7 @@ export function Booking() {
       const response = await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify({
-          servico: service.name,
+          servico: [service.name, ...selectedAddOns.map((addOn) => addOn.name)].join(" + "),
           data: summary.date,
           horario: horarioNormalizado,
           nome: nome.trim(),
@@ -401,15 +459,43 @@ export function Booking() {
             {/* Separador Visual */}
             <div className="my-4 border-t border-border/50" />
 
-            {/* Banho de Lua */}
-            <div>
+            {/* Clareamento */}
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <MoonStar className="size-5 text-wine" />
-                <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Banho de Lua</h4>
+                <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Clareamento</h4>
               </div>
               <div className="space-y-3">
-                {BANHO_LUA_SERVICES.map((s) => (
+                {CLAREAMENTO_SERVICES.map((s) => (
                   <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Separador Visual */}
+            <div className="my-4 border-t border-border/50" />
+
+            {/* Serviços adicionais combináveis */}
+            <div>
+              <div className="mb-3 flex items-start gap-3 rounded-2xl bg-accent/35 p-3.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-wine text-wine-foreground">
+                  <Sparkles className="size-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-wine">Adicione também</h4>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Complete seu atendimento escolhendo um ou mais serviços adicionais.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {ADDITIONAL_SERVICES.map((addOn) => (
+                  <AddOnCard
+                    key={addOn.id}
+                    addOn={addOn}
+                    isSelected={selectedAddOnIds.includes(addOn.id)}
+                    onCheckedChange={(checked) => toggleAddOn(addOn.id, checked)}
+                  />
                 ))}
               </div>
             </div>
@@ -500,13 +586,12 @@ export function Booking() {
                         <span><span className="font-semibold">Atendimento em cabine:</span> Tolerância máxima de 10 minutos de atraso. Após esse prazo, o horário poderá ser remarcado conforme disponibilidade.</span>
                       </div>
                     )}
-                    {isBanhoLua && (
+                    {isClareamento && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 p-3 text-xs sm:text-sm text-violet-900 dark:text-violet-100">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
-                        <span><span className="font-semibold">Banho de Lua:</span> Escolha um dos horários disponíveis para confirmar seu atendimento.</span>
+                        <span><span className="font-semibold">Clareamento:</span> Escolha um dos horários disponíveis para confirmar seu atendimento.</span>
                       </div>
                     )}
-
                     {/* Seleção de Períodos (Bronze Natural) */}
                     {isNatural && (
                       <div className="mt-4 space-y-2">
@@ -616,7 +701,7 @@ export function Booking() {
                     <div className="font-semibold text-foreground text-sm sm:text-base">{t}</div>
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       {i === 0
-                        ? "Selecione o serviço ideal para você e suas necessidades."
+                        ? "Selecione o serviço principal e, se quiser, marque opções em Adicione também."
                         : i === 1
                           ? "Veja os horários disponíveis e escolha o melhor para você."
                           : "Você será direcionada para o WhatsApp com todos os detalhes do agendamento."}
@@ -641,10 +726,13 @@ export function Booking() {
             {/* Resumo */}
             <div className="mt-4 space-y-2 rounded-2xl border border-border bg-card p-3 sm:p-4 text-sm">
               <Row icon={<Sun className="size-4" />} label="Serviço" value={service.name} />
+              {selectedAddOns.map((addOn) => (
+                <Row key={addOn.id} icon={<Sparkles className="size-4" />} label="Adicional" value={`${addOn.name} — ${addOn.price}`} />
+              ))}
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
               <Row icon={<Clock className="size-4" />} label={isNatural ? "Período" : "Horário"} value={selectedTimeDisplay} />
               <div className="border-t border-border pt-2 mt-2">
-                <Row icon={<CreditCard className="size-4" />} label="Valor" value={service.price} />
+                <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
               </div>
               {isCabine && (
                 <div className="border-t border-border pt-2 mt-2">
@@ -718,6 +806,52 @@ export function Booking() {
   );
 }
 
+function AddOnCard({
+  addOn,
+  isSelected,
+  onCheckedChange,
+}: {
+  addOn: AddOn;
+  isSelected: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const Icon = addOn.Icon;
+
+  return (
+    <label
+      htmlFor={`add-on-${addOn.id}`}
+      className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition-all ${
+        isSelected
+          ? "border-wine bg-wine/5 shadow-soft"
+          : "border-border bg-background hover:border-wine/40 hover:bg-muted/40"
+      }`}
+    >
+      <Checkbox
+        id={`add-on-${addOn.id}`}
+        checked={isSelected}
+        onCheckedChange={(checked) => onCheckedChange(checked === true)}
+        aria-label={`Adicionar ${addOn.name}`}
+        className="mt-1 size-5 rounded-md"
+      />
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/65 text-wine">
+        <Icon className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-semibold leading-tight text-foreground">{addOn.name}</span>
+          <span className="shrink-0 text-sm font-bold text-wine">+ {addOn.price}</span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{addOn.desc}</p>
+        {isSelected && (
+          <span className="mt-2 inline-flex rounded-full bg-wine px-2 py-0.5 text-[10px] font-semibold text-wine-foreground">
+            Adicionado
+          </span>
+        )}
+      </div>
+    </label>
+  );
+}
+
 // Componente para Card de Serviço
 function ServiceCard({ service, isSelected, onSelect }: { service: Service; isSelected: boolean; onSelect: () => void }) {
   const Icon = service.Icon;
@@ -738,7 +872,7 @@ function ServiceCard({ service, isSelected, onSelect }: { service: Service; isSe
           <span className="font-semibold text-foreground text-sm sm:text-base truncate">{service.name}</span>
           <span className="text-xs text-muted-foreground shrink-0">{service.duration}</span>
         </div>
-        <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{service.desc}</p>
+        <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">{service.desc}</p>
         <div className="mt-1 font-semibold text-wine text-sm">{service.price}</div>
       </div>
     </button>

@@ -1,65 +1,81 @@
-import { ShieldCheck, Clock, Heart } from "lucide-react";
+import { ArrowDownRight } from "lucide-react";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Button } from "@/components/ui/button";
 import hero from "@/assets/mayara_3.png";
 
 export function Hero() {
   return (
-    <section id="inicio" className="relative overflow-hidden bg-gradient-hero">
-      <div className="absolute inset-0 opacity-[0.04] mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+    <section id="inicio" className="relative overflow-hidden border-b border-wine/10 bg-background">
+      <div className="pointer-events-none absolute left-0 top-0 h-full w-[7px] bg-wine sm:w-2" aria-hidden="true" />
 
-      <div className="container relative mx-auto grid gap-8 px-4 py-10 sm:py-14 lg:grid-cols-2 lg:py-24 lg:items-center lg:gap-12">
-        <div className="animate-fade-up lg:pr-6 z-10 order-2 lg:order-1">
-          <span className="inline-block rounded-full bg-background/80 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-wine shadow-sm backdrop-blur-sm">
-            Bronzeamento Premium
-          </span>
-          <h1 className="mt-4 text-4xl font-bold leading-tight text-wine sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-sm">
-            Seu bronze,<br />sua melhor versão.
+      <div className="container mx-auto grid px-4 pb-12 pt-10 sm:px-6 sm:pb-16 sm:pt-14 lg:min-h-[720px] lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16 lg:pb-20 lg:pt-20 xl:gap-24">
+        <div className="relative z-10 max-w-2xl pl-2 sm:pl-4 lg:pl-0">
+          <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-wine/65 sm:text-xs">
+            <span className="h-px w-10 bg-wine/40" aria-hidden="true" />
+            La Melanina · Bronzeamento personalizado
+          </div>
+
+          <h1 className="mt-7 max-w-[11ch] font-serif text-[clamp(3rem,7vw,6.6rem)] font-semibold leading-[0.91] tracking-[-0.045em] text-wine">
+            Bronze bonito é o que parece seu.
           </h1>
-          <p className="mt-4 max-w-lg text-base text-foreground/80 font-medium leading-relaxed sm:text-lg">
-            Bronzeamento personalizado, ambiente acolhedor e atendimento cuidadoso para realçar sua beleza natural com aquela luz que só o bronze certo entrega.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="bg-wine text-wine-foreground hover:bg-wine/90 rounded-full px-6 sm:px-8 shadow-elegant transition-transform hover:-translate-y-1 text-sm sm:text-base">
-              <a href="#agendar" className="flex items-center gap-2">
+
+          <div className="mt-8 grid gap-6 border-t border-wine/15 pt-6 sm:grid-cols-[1fr_auto] sm:items-end lg:max-w-xl">
+            <p className="max-w-md text-base leading-7 text-foreground/72 sm:text-lg sm:leading-8">
+              Técnica, cuidado e um resultado pensado para valorizar o seu tom de pele — sem pressa e sem exagero.
+            </p>
+            <span className="hidden font-serif text-5xl italic leading-none text-accent sm:block" aria-hidden="true">LM</span>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button
+              asChild
+              size="lg"
+              className="h-13 rounded-none bg-wine px-7 text-sm font-semibold text-wine-foreground shadow-none transition-colors hover:bg-wine/90 sm:px-8"
+            >
+              <a href="#agendar">
                 <WhatsappIcon className="size-4" />
-                Agendar horário
+                Quero meu horário
               </a>
             </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full border-wine/30 text-wine hover:bg-wine/5 hover:border-wine/50 transition-all text-sm sm:text-base">
-              <a href="#servicos">Ver serviços</a>
-            </Button>
+            <a
+              href="#servicos"
+              className="group inline-flex h-12 items-center justify-center gap-2 border-b border-wine/25 px-4 text-sm font-semibold text-wine outline-none transition-colors hover:border-wine focus-visible:ring-2 focus-visible:ring-wine sm:justify-start"
+            >
+              Conhecer os serviços
+              <ArrowDownRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
+            </a>
           </div>
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              { Icon: ShieldCheck, t: "Ambiente seguro", s: "e profissionais qualificadas" },
-              { Icon: Clock, t: "Atendimento", s: "com horário marcado" },
-              { Icon: Heart, t: "Conforto e cuidado", s: "para sua autoestima" },
-            ].map(({ Icon, t, s }) => (
-              <div key={t} className="flex items-start gap-3">
-                <div className="rounded-full bg-wine/5 p-2 text-wine shadow-inner shrink-0">
-                  <Icon className="size-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-wine">{t}</div>
-                  <div className="text-xs font-medium text-foreground/70">{s}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+
+          <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
+            Atendimento individual <span className="mx-2 text-accent">●</span> Horário marcado <span className="mx-2 text-accent">●</span> Ambiente acolhedor
+          </p>
         </div>
 
-        <div className="relative animate-fade-up flex justify-center lg:justify-end z-10 order-1 lg:order-2">
-          <div className="absolute inset-0 bg-amber-200/40 blur-[100px] rounded-full scale-90 -z-10 translate-y-10" />
-          <img
-            src={hero}
-            alt="Mulher com pele bronzeada e iluminada"
-            width={1280}
-            height={1280}
-            className="relative rounded-[2rem] object-cover shadow-2xl w-full max-w-sm sm:max-w-md mx-auto lg:max-w-[680px] h-auto"
-          />
-          <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)] pointer-events-none max-w-sm sm:max-w-md mx-auto lg:max-w-[680px] w-full" />
-        </div>
+        <figure className="relative mt-12 pl-5 sm:mt-14 sm:pl-10 lg:mt-0 lg:pl-12">
+          <div className="absolute bottom-6 left-0 top-[-18px] w-[44%] bg-wine sm:bottom-10 sm:top-[-28px]" aria-hidden="true" />
+          <div className="relative aspect-[4/5] max-h-[680px] overflow-hidden bg-muted">
+            <img
+              src={hero}
+              alt="Profissional da La Melanina no estúdio de bronzeamento"
+              width={1280}
+              height={1280}
+              className="h-full w-full object-cover object-center"
+            />
+          </div>
+
+          <figcaption className="absolute bottom-5 left-0 max-w-[245px] border-l-4 border-accent bg-background px-5 py-4 shadow-elegant sm:bottom-8 sm:max-w-xs sm:px-6 sm:py-5">
+            <p className="font-serif text-lg font-semibold leading-tight text-wine sm:text-xl">
+              Natural no tom.<br />Preciso no cuidado.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Cada pele pede uma atenção diferente.
+            </p>
+          </figcaption>
+
+          <div className="absolute right-3 top-3 bg-background/92 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.18em] text-wine backdrop-blur-sm sm:right-5 sm:top-5 sm:text-[10px]">
+            Espaço de bronzeamento
+          </div>
+        </figure>
       </div>
     </section>
   );
