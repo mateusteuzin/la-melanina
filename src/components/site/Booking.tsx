@@ -71,6 +71,15 @@ const NATURAL_SERVICES: Service[] = [
     Icon: Zap,
     category: "natural"
   },
+  {
+    id: "diamante-premium",
+    name: "Bronze Diamante Premium",
+    duration: "período",
+    price: "R$ 85,00",
+    desc: "Ativador diamante premium, acelerador, intensificador, fixador e banho de lua clareador.",
+    Icon: Sparkles,
+    category: "natural"
+  },
 ];
 
 // BRONZE EM CABINE - Horários individuais
@@ -97,7 +106,7 @@ const CABINE_SERVICES: Service[] = [
     id: "duplo", 
     name: "Bronze Duplo", 
     duration: "2 horas", 
-    price: "R$ 140,00", 
+    price: "R$ 145,00", 
     desc: "Bronze artificial turbo + bronze natural no sol.",
     Icon: Infinity,
     category: "cabine"
@@ -110,8 +119,8 @@ const CLAREAMENTO_SERVICES: Service[] = [
     id: "clareamento-corporal",
     name: "Clareamento Corporal",
     duration: "horário",
-    price: "R$ 35,00",
-    desc: "Clareamento para todo o corpo, incluindo o rosto.",
+    price: "R$ 40,00",
+    desc: "Clareamento de 4 áreas do corpo e rosto.",
     Icon: MoonStar,
     category: "clareamento"
   },
@@ -232,6 +241,26 @@ function formatCurrency(value: number) {
 }
 
 export function Booking() {
+  const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
+  const progressRef = useRef<HTMLParagraphElement>(null);
+  const goToStep = (step: 1 | 2 | 3) => {
+    setMobileStep(step);
+    requestAnimationFrame(() => {
+      progressRef.current?.focus({ preventScroll: true });
+      progressRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  };
+
+  useEffect(() => {
+    const showServices = () => {
+      if (window.location.hash === "#servicos") {
+        setMobileStep(1);
+        requestAnimationFrame(() => document.getElementById("servicos")?.scrollIntoView({ block: "start" }));
+      }
+    };
+    window.addEventListener("hashchange", showServices);
+    return () => window.removeEventListener("hashchange", showServices);
+  }, []);
   const [serviceId, setServiceId] = useState<string>("bronze-turbo");
   const today = new Date();
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
@@ -404,7 +433,7 @@ export function Booking() {
     : (time || "—");
 
   return (
-    <section id="agendar" className="bg-secondary/40">
+    <section id="agendar" className="scroll-mt-20 bg-secondary/40 sm:scroll-mt-32">
       <div className="container mx-auto px-4 py-14 sm:py-20">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-wine md:text-4xl">Agende seu horário</h2>
@@ -413,16 +442,22 @@ export function Booking() {
           </p>
         </div>
 
+        <p ref={progressRef} tabIndex={-1} aria-live="polite" className="mb-3 scroll-mt-24 text-center text-sm font-semibold text-wine outline-none sm:scroll-mt-36 lg:hidden">
+          Etapa {mobileStep} de 3 — {["Escolha o serviço", "Data e horário", "Confirmação"][mobileStep - 1]}
+        </p>
         <div className="mx-auto mb-8 grid max-w-4xl grid-cols-3 gap-2 sm:gap-4">
           {["Escolha o serviço", "Data e horário", "Confirme"].map((label, i) => {
             const n = i + 1;
             const active = stepActive >= n;
             return (
               <div key={label} className="flex items-center gap-2">
-                <div className={`flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${active ? "bg-wine text-wine-foreground" : "bg-muted text-muted-foreground"}`}>
+                <div aria-current={mobileStep === n ? "step" : undefined} className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold lg:hidden ${mobileStep >= n ? "bg-wine text-wine-foreground" : "bg-muted text-muted-foreground"}`}>
                   {n}
                 </div>
-                <span className={`text-xs sm:text-sm font-medium hidden xs:block ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                <div className={`hidden size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors lg:flex ${active ? "bg-wine text-wine-foreground" : "bg-muted text-muted-foreground"}`}>
+                  {n}
+                </div>
+                <span className={`hidden text-sm font-medium lg:block ${active ? "text-foreground" : "text-muted-foreground"}`}>
                   {label}
                 </span>
               </div>
@@ -430,9 +465,9 @@ export function Booking() {
           })}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className={`${mobileStep === 3 ? "hidden" : "grid"} gap-6 lg:grid lg:grid-cols-2`}>
           {/* SELEÇÃO DE SERVIÇOS */}
-          <div id="servicos" className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
+          <div id="servicos" className={`${mobileStep === 1 ? "block" : "hidden"} scroll-mt-24 rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft sm:scroll-mt-36 lg:block`}>
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">1. Escolha o serviço</h3>
             
             {/* Bronze Natural */}
@@ -522,7 +557,7 @@ export function Booking() {
           </div>
 
           {/* DATA E HORÁRIO */}
-          <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
+          <div className={`${mobileStep === 2 ? "block" : "hidden"} rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft lg:block`}>
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">2. Escolha a data e horário</h3>
             <div className="rounded-2xl bg-background p-3 sm:p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -697,9 +732,9 @@ export function Booking() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className={`${mobileStep === 3 ? "grid" : "hidden"} gap-6 lg:mt-6 lg:grid lg:grid-cols-2`}>
           {/* Como funciona */}
-          <div className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft">
+          <div className="hidden rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft lg:block">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">Como funciona o agendamento</h3>
             <ol className="space-y-4">
               {["Escolha o serviço", "Escolha a data e horário", "Confirme no WhatsApp"].map((t, i) => (
@@ -754,17 +789,22 @@ export function Booking() {
 
             {/* Inputs */}
             <div className={`mt-3 space-y-2 transition-all ${(isNatural ? period : time) ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+              <label htmlFor="booking-name" className="block text-sm font-medium">Seu nome completo</label>
               <Input
+                id="booking-name"
+                autoComplete="name"
                 placeholder="Seu nome completo"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="bg-background text-sm"
+                className="bg-background text-base md:text-sm"
               />
+              <label htmlFor="booking-notes" className="block text-sm font-medium">Observações (opcional)</label>
               <Input
+                id="booking-notes"
                 placeholder="Observações (Opcional)"
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
-                className="bg-background text-sm"
+                className="bg-background text-base md:text-sm"
               />
             </div>
 
@@ -809,6 +849,26 @@ export function Booking() {
             )}
           </div>
         </div>
+        <div className="mt-5 flex gap-3 lg:hidden">
+          {mobileStep > 1 && (
+            <button type="button" onClick={() => goToStep(mobileStep === 3 ? 2 : 1)} className="min-h-12 flex-1 rounded-full border border-wine px-4 py-3 text-sm font-semibold text-wine">
+              Voltar
+            </button>
+          )}
+          {mobileStep < 3 && (
+            <button
+              type="button"
+              disabled={mobileStep === 2 && (!selected || selected.getDay() === 1 || !(isNatural ? period : time))}
+              onClick={() => goToStep(mobileStep === 1 ? 2 : 3)}
+              className="min-h-12 flex-1 rounded-full bg-wine px-4 py-3 text-sm font-semibold text-wine-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {mobileStep === 1 ? "Continuar para data e horário" : "Continuar para confirmação"}
+            </button>
+          )}
+        </div>
+        {mobileStep === 2 && !(isNatural ? period : time) && (
+          <p className="mt-2 text-center text-sm text-muted-foreground lg:hidden">Escolha a data e {isNatural ? "o período" : "o horário"} para continuar.</p>
+        )}
       </div>
     </section>
   );

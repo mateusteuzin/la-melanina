@@ -32,9 +32,9 @@ export function Header() {
 
   return (
     <header className="relative sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="container mx-auto flex h-28 items-center justify-between px-4">
+      <div className="container mx-auto flex h-18 items-center justify-between px-4 sm:h-28">
         <a href="#inicio" className="text-wine transition-transform duration-200 hover:scale-105 active:scale-95">
-          <Logo height={88} />
+          <Logo height={88} className="max-h-14 sm:max-h-22" />
         </a>
         <nav className="hidden items-center gap-8 lg:flex">
           {links.map((link) => (

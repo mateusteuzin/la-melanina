@@ -1,81 +1,70 @@
-import { ArrowDownRight } from "lucide-react";
-import { WhatsappIcon } from "./WhatsappIcon";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import hero from "@/assets/mayara_3.png";
 
 export function Hero() {
   return (
-    <section id="inicio" className="relative overflow-hidden border-b border-wine/10 bg-background">
-      <div className="pointer-events-none absolute left-0 top-0 h-full w-[7px] bg-wine sm:w-2" aria-hidden="true" />
-
-      <div className="container mx-auto grid px-4 pb-12 pt-10 sm:px-6 sm:pb-16 sm:pt-14 lg:min-h-[720px] lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16 lg:pb-20 lg:pt-20 xl:gap-24">
-        <div className="relative z-10 max-w-2xl pl-2 sm:pl-4 lg:pl-0">
-          <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-wine/65 sm:text-xs">
-            <span className="h-px w-10 bg-wine/40" aria-hidden="true" />
-            La Melanina · Bronzeamento personalizado
-          </div>
-
-          <h1 className="mt-7 max-w-[11ch] font-serif text-[clamp(3rem,7vw,6.6rem)] font-semibold leading-[0.91] tracking-[-0.045em] text-wine">
-            Bronze bonito é o que parece seu.
-          </h1>
-
-          <div className="mt-8 grid gap-6 border-t border-wine/15 pt-6 sm:grid-cols-[1fr_auto] sm:items-end lg:max-w-xl">
-            <p className="max-w-md text-base leading-7 text-foreground/72 sm:text-lg sm:leading-8">
-              Técnica, cuidado e um resultado pensado para valorizar o seu tom de pele — sem pressa e sem exagero.
+    <section id="inicio" aria-labelledby="hero-title" className="scroll-mt-20 border-b border-wine/10 bg-background sm:scroll-mt-32">
+      <div className="mx-auto max-w-6xl px-5 pb-8 pt-8 sm:px-8 sm:py-12 lg:py-16">
+        <div className="grid items-center gap-7 sm:gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <div>
+            <p className="flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.16em] text-wine/80 sm:text-xs">
+              <span className="h-px w-6 bg-wine/40" aria-hidden="true" />
+              La Melanina · Bronzeamento
             </p>
-            <span className="hidden font-serif text-5xl italic leading-none text-accent sm:block" aria-hidden="true">LM</span>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              asChild
-              size="lg"
-              className="h-13 rounded-none bg-wine px-7 text-sm font-semibold text-wine-foreground shadow-none transition-colors hover:bg-wine/90 sm:px-8"
-            >
-              <a href="#agendar">
-                <WhatsappIcon className="size-4" />
-                Quero meu horário
+            <h1 id="hero-title" className="mt-5 font-serif text-[clamp(2.5rem,9.5vw,3.5rem)] font-medium leading-[1.06] tracking-[-0.035em] text-wine lg:mt-7 lg:text-[4.5rem]">
+              Seu tom.<br />
+              <span className="italic">Seu brilho.</span><br />
+              Seu momento.
+            </h1>
+            <p className="mt-5 max-w-[36ch] text-[15px] leading-relaxed text-foreground/75 sm:text-base lg:mt-6 lg:text-lg">
+              Bronzeamento personalizado, com cuidado em cada detalhe para valorizar a sua beleza.
+            </p>
+            <div className="mt-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-5 lg:mt-8">
+              <a href="#agendar" className="inline-flex min-h-13 items-center justify-center gap-5 rounded-lg bg-wine px-6 py-3.5 text-sm font-semibold text-wine-foreground transition-colors hover:bg-wine/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-wine">
+                Agendar meu bronze
+                <ArrowRight className="size-4" aria-hidden="true" />
               </a>
-            </Button>
-            <a
-              href="#servicos"
-              className="group inline-flex h-12 items-center justify-center gap-2 border-b border-wine/25 px-4 text-sm font-semibold text-wine outline-none transition-colors hover:border-wine focus-visible:ring-2 focus-visible:ring-wine sm:justify-start"
-            >
-              Conhecer os serviços
-              <ArrowDownRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
-            </a>
+              <a href="#servicos" className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-medium text-wine underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-wine">
+                Conhecer os serviços
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground lg:mt-5">Escolha seu serviço e veja os horários disponíveis.</p>
           </div>
 
-          <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
-            Atendimento individual <span className="mx-2 text-accent">●</span> Horário marcado <span className="mx-2 text-accent">●</span> Ambiente acolhedor
-          </p>
+          <figure className="min-w-0">
+            <div className="aspect-[6/5] overflow-hidden rounded-2xl border border-wine/10 bg-secondary sm:aspect-[4/3] lg:aspect-[4/5]">
+              <img
+                src={hero}
+                alt="Profissional da La Melanina com instrumentos de bronzeamento no estúdio"
+                width={1280}
+                height={1280}
+                fetchPriority="high"
+                className="h-full w-full object-cover object-[center_30%] lg:object-center"
+              />
+            </div>
+            <figcaption className="flex flex-wrap items-center justify-between gap-2 px-0.5 pt-3 text-xs text-muted-foreground">
+              <span className="font-medium text-wine">Cuidado em cada detalhe.</span>
+              <span>Espaço La Melanina</span>
+            </figcaption>
+          </figure>
         </div>
 
-        <figure className="relative mt-12 pl-5 sm:mt-14 sm:pl-10 lg:mt-0 lg:pl-12">
-          <div className="absolute bottom-6 left-0 top-[-18px] w-[44%] bg-wine sm:bottom-10 sm:top-[-28px]" aria-hidden="true" />
-          <div className="relative aspect-[4/5] max-h-[680px] overflow-hidden bg-muted">
-            <img
-              src={hero}
-              alt="Profissional da La Melanina no estúdio de bronzeamento"
-              width={1280}
-              height={1280}
-              className="h-full w-full object-cover object-center"
-            />
-          </div>
-
-          <figcaption className="absolute bottom-5 left-0 max-w-[245px] border-l-4 border-accent bg-background px-5 py-4 shadow-elegant sm:bottom-8 sm:max-w-xs sm:px-6 sm:py-5">
-            <p className="font-serif text-lg font-semibold leading-tight text-wine sm:text-xl">
-              Natural no tom.<br />Preciso no cuidado.
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Cada pele pede uma atenção diferente.
-            </p>
-          </figcaption>
-
-          <div className="absolute right-3 top-3 bg-background/92 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.18em] text-wine backdrop-blur-sm sm:right-5 sm:top-5 sm:text-[10px]">
-            Espaço de bronzeamento
-          </div>
-        </figure>
+        <div className="mt-7 grid grid-cols-3 divide-x divide-wine/10 border-t border-wine/10 pt-5 text-center sm:mt-10 sm:pt-6 lg:mt-12">
+          {[
+            ["01", "Seu tom", "Bronze personalizado"],
+            ["02", "Seu tempo", "Horário marcado"],
+            ["03", "Seu espaço", "Ambiente acolhedor"],
+          ].map(([number, title, description]) => (
+            <div key={number} className="px-2 sm:flex sm:items-center sm:justify-center sm:gap-4 sm:text-left">
+              <span className="hidden font-serif text-2xl italic text-wine/45 sm:block" aria-hidden="true">{number}</span>
+              <div>
+                <p className="text-xs font-semibold text-wine sm:text-sm">{title}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
