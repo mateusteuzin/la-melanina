@@ -24,9 +24,9 @@ import {
 import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbwtkX_NJRWbuI9Kc6HaV055BXjViR833HhZQ-6bJVwRrsmJ3Bxg1p_AKRjGYLlDAeSFnw/exec";
+import { loadCatalog, unavailable, createBooking, demoMode } from '@/admin/store';
+import { naturalTimes } from '@/admin/domain';
+import type { Service as CatalogService, Addon as CatalogAddon } from '@/admin/domain';
 
 type ServiceCategory = "natural" | "cabine" | "clareamento";
 
@@ -44,29 +44,29 @@ type AddOn = Omit<Service, "category">;
 
 // BRONZE NATURAL - Períodos
 const NATURAL_SERVICES: Service[] = [
-  { 
+  {
     id: "bronze-turbo",
     name: "Bronze Turbo",
-    duration: "período",
+    duration: "horário de chegada",
     price: "R$ 75,00",
     desc: "Parafina, 2 ativadores e banho de lua clareador.",
     Icon: Sun,
     category: "natural"
   },
-  { 
-    id: "power", 
-    name: "Bronze Power", 
-    duration: "período", 
-    price: "R$ 80,00", 
+  {
+    id: "power",
+    name: "Bronze Power",
+    duration: "horário de chegada",
+    price: "R$ 80,00",
     desc: "Giga óleo, 3 ativadores, acelerador e banho de lua clareador.",
     Icon: Flame,
     category: "natural"
   },
-  { 
-    id: "turbinado", 
-    name: "Bronze Turbinado", 
-    duration: "período", 
-    price: "R$ 85,00", 
+  {
+    id: "turbinado",
+    name: "Bronze Turbinado",
+    duration: "horário de chegada",
+    price: "R$ 85,00",
     desc: "Giga bronze, 3 ativadores, acelerador, intensificador e banho de lua clareador.",
     Icon: Zap,
     category: "natural"
@@ -74,7 +74,7 @@ const NATURAL_SERVICES: Service[] = [
   {
     id: "diamante-premium",
     name: "Bronze Diamante Premium",
-    duration: "período",
+    duration: "horário de chegada",
     price: "R$ 85,00",
     desc: "Ativador diamante premium, acelerador, intensificador, fixador e banho de lua clareador.",
     Icon: Sparkles,
@@ -84,29 +84,29 @@ const NATURAL_SERVICES: Service[] = [
 
 // BRONZE EM CABINE - Horários individuais
 const CABINE_SERVICES: Service[] = [
-  { 
-    id: "solazul", 
-    name: "Bronze Sol Azul", 
-    duration: "45 min", 
-    price: "R$ 120,00", 
+  {
+    id: "solazul",
+    name: "Bronze Sol Azul",
+    duration: "45 min",
+    price: "R$ 120,00",
     desc: "Ativador, intensificador, fixador, acelerador e banho de lua.",
     Icon: Droplet,
     category: "cabine"
   },
-  { 
-    id: "solazul-turbo", 
-    name: "Bronze Sol Azul Turbo", 
-    duration: "45 min", 
-    price: "R$ 130,00", 
+  {
+    id: "solazul-turbo",
+    name: "Bronze Sol Azul Turbo",
+    duration: "45 min",
+    price: "R$ 130,00",
     desc: "3 ativadores, intensificador, fixador, acelerador e banho de lua.",
     Icon: Sparkles,
     category: "cabine"
   },
-  { 
-    id: "duplo", 
-    name: "Bronze Duplo", 
-    duration: "2 horas", 
-    price: "R$ 145,00", 
+  {
+    id: "duplo",
+    name: "Bronze Duplo",
+    duration: "2 horas",
+    price: "R$ 145,00",
     desc: "Bronze artificial turbo + bronze natural no sol.",
     Icon: Infinity,
     category: "cabine"
@@ -184,12 +184,6 @@ const services: Service[] = [
   ...CLAREAMENTO_SERVICES,
 ];
 
-// Períodos para Bronze Natural
-const PERIODS = [
-  { id: "manha", label: "Manhã", time: "08h às 11h", value: "Manhã (08h-11h)" },
-  { id: "tarde", label: "Tarde", time: "15h às 19h", value: "Tarde (15h-19h)" },
-];
-
 // Horários individuais para Bronze em Cabine e Clareamento
 const TIMES_MANHA = ["08:00", "09:00", "10:00", "11:00"];
 const TIMES_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
@@ -241,6 +235,19 @@ function formatCurrency(value: number) {
 }
 
 export function Booking() {
+  const [catalog, setCatalog] = useState<{services:CatalogService[];addons:CatalogAddon[]}|null>(null);
+  const [bookingError, setBookingError] = useState('');
+  const [availabilityReady, setAvailabilityReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmedWhatsappHref, setConfirmedWhatsappHref] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const catalogServices:Service[] = (catalog?.services || []).filter(s=>s.active).map(s=>({ ...s, price:formatCurrency(s.price), duration:s.category==='natural'?'horário de chegada':`${s.duration} min`, Icon:s.category==='natural'?Sun:s.category==='cabine'?Droplet:Sparkles }));
+  const services = catalogServices.length ? catalogServices : [...NATURAL_SERVICES,...CABINE_SERVICES,...CLAREAMENTO_SERVICES];
+  const naturalServices = catalogServices.filter(s=>s.category==='natural');
+  const cabineServices = catalogServices.filter(s=>s.category==='cabine');
+  const clareamentoServices = catalogServices.filter(s=>s.category==='clareamento');
+  const additionalServices:AddOn[] = (catalog?.addons||[]).map(a=>({...a,price:formatCurrency(a.price),duration:'adicional',desc:ADDITIONAL_SERVICES.find(x=>x.id===a.id)?.desc||'',Icon:ADDITIONAL_SERVICES.find(x=>x.id===a.id)?.Icon||Sparkles}));
+  useEffect(()=>{const refresh=()=>loadCatalog().then(setCatalog).catch(e=>setBookingError(e.message));refresh();const interval=setInterval(refresh,30000);window.addEventListener('storage',refresh);window.addEventListener('melanina-change',refresh);return()=>{clearInterval(interval);window.removeEventListener('storage',refresh);window.removeEventListener('melanina-change',refresh);};},[]);
   const [mobileStep, setMobileStep] = useState<1 | 2 | 3>(1);
   const progressRef = useRef<HTMLParagraphElement>(null);
   const goToStep = (step: 1 | 2 | 3) => {
@@ -266,7 +273,6 @@ export function Booking() {
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState<Date | null>(() => new Date());
   const [time, setTime] = useState<string | null>(null);
-  const [period, setPeriod] = useState<string | null>(null);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [nome, setNome] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -301,13 +307,13 @@ export function Booking() {
     return arr;
   }, [view]);
 
-  const service = services.find((s) => s.id === serviceId)!;
+  const service = services.find((s) => s.id === serviceId) || services[0];
   const serviceCategory = getServiceCategory(serviceId);
   const isNatural = serviceCategory === "natural";
   const isCabine = serviceCategory === "cabine";
   const isClareamento = serviceCategory === "clareamento";
-  const isTimedService = !isNatural;
-  const selectedAddOns = ADDITIONAL_SERVICES.filter((addOn) => selectedAddOnIds.includes(addOn.id));
+  const isTimedService = true;
+  const selectedAddOns = additionalServices.filter((addOn) => selectedAddOnIds.includes(addOn.id));
   const totalPrice = formatCurrency(
     priceToNumber(service.price) + selectedAddOns.reduce((total, addOn) => total + priceToNumber(addOn.price), 0),
   );
@@ -317,7 +323,7 @@ export function Booking() {
       checked ? [...current, addOnId] : current.filter((id) => id !== addOnId),
     );
   };
-  
+
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
   const selectedDateFormatted = selected ? formatDateBR(selected) : "";
   const summary = selected ? { date: selectedDateFormatted, weekday: WEEKDAYS[selected.getDay()] } : null;
@@ -336,35 +342,24 @@ export function Booking() {
   };
 
   const fetchAgendamentos = async (dateStr: string) => {
-    try {
-      const response = await fetch(`${API_URL}?nocache=${Date.now()}`);
-      const data = await response.json();
-      if (!Array.isArray(data)) { setBookedTimes([]); return []; }
-      const horariosOcupados = data
-        .filter((item: any) =>
-          normalizeApiDate(item.data) === dateStr &&
-          String(item.status || "Pendente").toLowerCase() !== "cancelado"
-        )
-        .map((item: any) => normalizeTime(item.horario));
+      const isoDate=dateStr.split('/').reverse().join('-');
+      const horariosOcupados = await unavailable(isoDate,serviceId);
       setBookedTimes(horariosOcupados);
       if (time && horariosOcupados.includes(normalizeTime(time))) setTime(null);
       return horariosOcupados;
-    } catch {
-      setBookedTimes([]); return [];
-    }
   };
 
   useEffect(() => {
     if (!selected) return;
-    fetchAgendamentos(selectedDateFormatted);
-  }, [selectedDateFormatted, serviceId]);
+    let cancelled=false;
+    setAvailabilityReady(false);setBookingError('');
+    unavailable(selectedDateFormatted.split('/').reverse().join('-'),serviceId).then(slots=>{if(!cancelled){setBookedTimes(slots);setAvailabilityReady(true);}}).catch(e=>{if(!cancelled)setBookingError('Não foi possível consultar a agenda. '+e.message);});
+    return()=>{cancelled=true;};
+  }, [selectedDateFormatted, serviceId, catalog]);
+  useEffect(()=>{if(catalogServices.length&&!catalogServices.some(s=>s.id===serviceId)){setServiceId(catalogServices[0].id);setTime(null);}},[catalog]);
 
   const buildWhatsappHref = () => {
-    const displayTime = isNatural
-      ? period
-        ? PERIODS.find((p) => p.id === period)?.value
-        : null
-      : time;
+    const displayTime = time;
     if (!displayTime || !selected || !summary || !nome.trim()) return "";
     const obs = observacoes.trim();
     const addOnsText = selectedAddOns.length
@@ -377,13 +372,14 @@ export function Booking() {
   const handleBookingClick = async () => {
     if (submitRef.current) return;
     submitRef.current = true;
-    const displayTime = isNatural ? (period ? PERIODS.find(p => p.id === period)?.value : null) : time;
+    const displayTime = time;
     if (!displayTime || !selected || !summary) {
       submitRef.current = false;
       return;
     }
     const horarioNormalizado = normalizeTime(displayTime);
-
+    const whatsappHref=buildWhatsappHref();
+    setSubmitting(true);setBookingError('');
     try {
       const horariosAtualizados = await fetchAgendamentos(summary.date);
       if (horariosAtualizados.includes(horarioNormalizado)) {
@@ -393,33 +389,20 @@ export function Booking() {
         return;
       }
 
-      const response = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          servico: [service.name, ...selectedAddOns.map((addOn) => addOn.name)].join(" + "),
-          data: summary.date,
-          horario: horarioNormalizado,
-          nome: nome.trim(),
-          observacoes: observacoes.trim(),
-        }),
-      });
-
-      const result = await response.json();
-      if (!result.success) {
-        setTime(null);
-        submitRef.current = false;
-        await fetchAgendamentos(summary.date);
-        window.alert(result.error || "Esse horário não está mais disponível.");
-        return;
-      }
-
+      await createBooking({serviceId,name:nome.trim(),phone:telefone.trim(),date:summary.date.split('/').reverse().join('-'),time:horarioNormalizado,notes:observacoes.trim(),addons:selectedAddOnIds});
       setAgendamentoConfirmado(true);
-      await fetchAgendamentos(summary.date);
+      setConfirmedWhatsappHref(whatsappHref);
+      // Open WhatsApp only after the database accepted the booking.
+      if(!demoMode) window.open(whatsappHref,'_blank','noopener,noreferrer');
+      await fetchAgendamentos(summary.date).catch(()=>{});
     } catch (error) {
       console.error("Erro ao processar agendamento:", error);
       submitRef.current = false;
-      window.alert("Não foi possível confirmar o agendamento. Tente novamente.");
+      setBookingError((error as Error).message || 'Não foi possível confirmar o agendamento. Tente novamente.');
       return;
+    } finally {
+      setSubmitting(false);
+      submitRef.current=false;
     }
 
     setTimeout(() => {
@@ -427,10 +410,8 @@ export function Booking() {
     }, 3000);
   };
 
-  const stepActive = serviceId ? (selected ? (isNatural ? (period ? 3 : 2) : (time ? 3 : 2)) : 1) : 1;
-  const selectedTimeDisplay: string = isNatural 
-    ? (period ? (PERIODS.find(p => p.id === period)?.value || "—") : "—") 
-    : (time || "—");
+  const stepActive = serviceId ? (selected ? (time ? 3 : 2) : 1) : 1;
+  const selectedTimeDisplay: string = time || "—";
 
   return (
     <section id="agendar" className="scroll-mt-20 bg-secondary/40 sm:scroll-mt-32">
@@ -469,7 +450,7 @@ export function Booking() {
           {/* SELEÇÃO DE SERVIÇOS */}
           <div id="servicos" className={`${mobileStep === 1 ? "block" : "hidden"} scroll-mt-24 rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft sm:scroll-mt-36 lg:block`}>
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">1. Escolha o serviço</h3>
-            
+
             {/* Bronze Natural */}
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-3">
@@ -477,8 +458,8 @@ export function Booking() {
                 <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze Natural</h4>
               </div>
               <div className="space-y-3">
-                {NATURAL_SERVICES.map((s) => (
-                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                {naturalServices.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null);  }} />
                 ))}
               </div>
             </div>
@@ -493,8 +474,8 @@ export function Booking() {
                 <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Bronze em Cabine</h4>
               </div>
               <div className="space-y-3">
-                {CABINE_SERVICES.map((s) => (
-                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                {cabineServices.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null);  }} />
                 ))}
               </div>
             </div>
@@ -509,8 +490,8 @@ export function Booking() {
                 <h4 className="text-sm font-semibold text-wine uppercase tracking-wide">Clareamento</h4>
               </div>
               <div className="space-y-3">
-                {CLAREAMENTO_SERVICES.map((s) => (
-                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null); setPeriod(null); }} />
+                {clareamentoServices.map((s) => (
+                  <ServiceCard key={s.id} service={s} isSelected={serviceId === s.id} onSelect={() => { setServiceId(s.id); setTime(null);  }} />
                 ))}
               </div>
             </div>
@@ -532,7 +513,7 @@ export function Booking() {
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {ADDITIONAL_SERVICES.map((addOn) => (
+                {additionalServices.map((addOn) => (
                   <AddOnCard
                     key={addOn.id}
                     addOn={addOn}
@@ -592,7 +573,7 @@ export function Booking() {
                     <button
                       key={i}
                       disabled={c.disabled}
-                      onClick={() => { setSelected(c.date); setTime(null); setPeriod(null); }}
+                      onClick={() => { setSelected(c.date); setTime(null);  }}
                       className={`aspect-square rounded-full text-xs sm:text-sm font-medium transition-colors disabled:cursor-not-allowed
                         ${!c.current || c.disabled ? "text-muted-foreground/40 opacity-50" : "text-foreground hover:bg-accent/50"}
                         ${isMonday && c.current ? "opacity-40 hover:bg-transparent" : ""}
@@ -620,7 +601,7 @@ export function Booking() {
                     {isNatural && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3 text-xs sm:text-sm text-rose-900 dark:text-rose-100">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
-                        <span><span className="font-semibold">Período flexível:</span> O bronze natural é realizado por período. As clientes são atendidas conforme a organização do espaço.</span>
+                        <span><span className="font-semibold">Horário de chegada:</span> Escolha seu horário individual para o bronze natural. As clientes podem permanecer em atendimento ao mesmo tempo.</span>
                       </div>
                     )}
                     {isCabine && (
@@ -635,44 +616,15 @@ export function Booking() {
                         <span><span className="font-semibold">Clareamento:</span> Escolha um dos horários disponíveis para confirmar seu atendimento.</span>
                       </div>
                     )}
-                    {/* Seleção de Períodos (Bronze Natural) */}
-                    {isNatural && (
-                      <div className="mt-4 space-y-2">
-                        {PERIODS.map((p) => {
-                          const sel = period === p.id;
-                          return (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => setPeriod(p.id)}
-                              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 sm:px-4 sm:py-3 text-left transition-all
-                                ${sel
-                                  ? "border-wine bg-wine/10 shadow-soft"
-                                  : "border-border bg-background text-foreground hover:border-wine/50 hover:bg-muted/30"
-                                }`}
-                            >
-                              <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${sel ? "border-wine bg-wine" : "border-border"}`}>
-                                {sel && <span className="size-1.5 rounded-full bg-wine-foreground" />}
-                              </span>
-                              <div className="flex-1">
-                                <div className="font-semibold text-sm sm:text-base text-foreground">{p.label}</div>
-                                <div className="text-xs text-muted-foreground">{p.time}</div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
                     {/* Seleção de Horários (Bronze em Cabine e Banho de Lua) */}
                     {isTimedService && (
                       <div className="mt-4 space-y-3">
                         <div>
                           <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {TIMES_MANHA.map((t) => {
+                            {(isNatural ? naturalTimes : TIMES_MANHA).map((t) => {
                               const horarioNormalizado = normalizeTime(t);
-                              const unavail = bookedTimes.includes(horarioNormalizado);
+                              const unavail = !availabilityReady || bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
                               return (
                                 <button
@@ -695,12 +647,12 @@ export function Booking() {
                             })}
                           </div>
                         </div>
-                        <div>
+                        <div className={isNatural ? "hidden" : ""}>
                           <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {TIMES_TARDE.map((t) => {
+                            {(isNatural ? [] : TIMES_TARDE).map((t) => {
                               const horarioNormalizado = normalizeTime(t);
-                              const unavail = bookedTimes.includes(horarioNormalizado);
+                              const unavail = !availabilityReady || bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
                               return (
                                 <button
@@ -773,7 +725,7 @@ export function Booking() {
                 <Row key={addOn.id} icon={<Sparkles className="size-4" />} label="Adicional" value={`${addOn.name} — ${addOn.price}`} />
               ))}
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
-              <Row icon={<Clock className="size-4" />} label={isNatural ? "Período" : "Horário"} value={selectedTimeDisplay} />
+              <Row icon={<Clock className="size-4" />} label="Horário" value={selectedTimeDisplay} />
               <div className="border-t border-border pt-2 mt-2">
                 <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
               </div>
@@ -788,7 +740,7 @@ export function Booking() {
             </div>
 
             {/* Inputs */}
-            <div className={`mt-3 space-y-2 transition-all ${(isNatural ? period : time) ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+            <div className={`mt-3 space-y-2 transition-all ${time ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
               <label htmlFor="booking-name" className="block text-sm font-medium">Seu nome completo</label>
               <Input
                 id="booking-name"
@@ -798,6 +750,8 @@ export function Booking() {
                 onChange={(e) => setNome(e.target.value)}
                 className="bg-background text-base md:text-sm"
               />
+              <label htmlFor="booking-phone" className="block text-sm font-medium">Telefone com DDD</label>
+              <Input id="booking-phone" type="tel" placeholder="(88) 99999-9999" value={telefone} onChange={e=>setTelefone(e.target.value)} className="bg-background text-base md:text-sm" />
               <label htmlFor="booking-notes" className="block text-sm font-medium">Observações (opcional)</label>
               <Input
                 id="booking-notes"
@@ -811,25 +765,25 @@ export function Booking() {
             {/* Botão WhatsApp */}
             {(() => {
               const href = buildWhatsappHref();
-              const canBook = !!(((isNatural ? period : time) && nome.trim() && href));
-              
+              const canBook = !!((time && nome.trim().length>=2 && telefone.replace(/\D/g,'').length>=10 && href && availabilityReady && catalogServices.length && !submitting));
+
 
               return canBook ? (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   onClick={handleBookingClick}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-wine px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant transition-all hover:bg-wine/90"
                 >
-                  <WhatsappIcon className="size-5" /> AGENDAR PELO WHATSAPP
-                </a>
+                  <WhatsappIcon className="size-5" /> CONFIRMAR AGENDAMENTO
+                </button>
               ) : (
                 <span className="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-wine/50 px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant opacity-60">
-                  <WhatsappIcon className="size-5" /> AGENDAR PELO WHATSAPP
+                  <WhatsappIcon className="size-5" /> {submitting?'SALVANDO…':'CONFIRMAR AGENDAMENTO'}
                 </span>
               );
             })()}
+            {bookingError&&<p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{bookingError}</p>}
+            {demoMode&&<p className="mt-2 text-xs text-amber-700">Demonstração local: reservas salvas somente neste navegador.</p>}
             <p className="mt-2 text-center text-xs text-muted-foreground">
               Ao clicar, você será redirecionada para o WhatsApp para finalizar seu agendamento.
             </p>
@@ -841,8 +795,8 @@ export function Booking() {
                   <CheckCircle className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Agendamento recebido! ✨</p>
-                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Você será direcionada ao WhatsApp para finalizar.</p>
-                    
+                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Sua solicitação foi salva na agenda. Se o WhatsApp não abriu, <a className="underline" href={confirmedWhatsappHref} target="_blank" rel="noreferrer">clique aqui para conversar com o estúdio</a>.</p>
+
                   </div>
                 </div>
               </div>
@@ -858,7 +812,7 @@ export function Booking() {
           {mobileStep < 3 && (
             <button
               type="button"
-              disabled={mobileStep === 2 && (!selected || selected.getDay() === 1 || !(isNatural ? period : time))}
+              disabled={mobileStep === 2 && (!selected || selected.getDay() === 1 || !time)}
               onClick={() => goToStep(mobileStep === 1 ? 2 : 3)}
               className="min-h-12 flex-1 rounded-full bg-wine px-4 py-3 text-sm font-semibold text-wine-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -866,8 +820,8 @@ export function Booking() {
             </button>
           )}
         </div>
-        {mobileStep === 2 && !(isNatural ? period : time) && (
-          <p className="mt-2 text-center text-sm text-muted-foreground lg:hidden">Escolha a data e {isNatural ? "o período" : "o horário"} para continuar.</p>
+        {mobileStep === 2 && !time && (
+          <p className="mt-2 text-center text-sm text-muted-foreground lg:hidden">Escolha a data e o horário para continuar.</p>
         )}
       </div>
     </section>
