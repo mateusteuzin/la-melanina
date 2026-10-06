@@ -43,6 +43,29 @@ export function BookingPolicyModal() {
                 <Clock3 className="size-5" />
               </div>
               <div>
+                <h3 className="text-sm font-semibold text-foreground">✨ ATENÇÃO AOS HORÁRIOS! ✨</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  Nosso horário é reservado especialmente para você. Por isso, contamos com o compromisso de chegar no horário agendado.
+                </p>
+                <p className="mt-3 text-xs font-semibold text-foreground sm:text-sm">⏰ Tolerância:</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-muted-foreground sm:text-sm">
+                  <li>Bronze natural: <strong>30 minutos</strong></li>
+                  <li>Bronze de cabine: <strong>10 minutos</strong></li>
+                </ul>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  Após esse período, o atendimento poderá ser cancelado ou reagendado, conforme disponibilidade.
+                </p>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  Agradecemos a compreensão e o compromisso de todas!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3.5 rounded-2xl border border-border/80 bg-background/70 p-4">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-wine/8 text-wine">
+                <Clock3 className="size-5" />
+              </div>
+              <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold text-foreground">Cancelamentos e reagendamentos</h3>
                   <span className="rounded-full bg-accent/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-wine">24 horas</span>
@@ -89,3 +112,4 @@ export function BookingPolicyModal() {
     </Dialog>
   );
 }
+
