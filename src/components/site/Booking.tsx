@@ -25,8 +25,8 @@ import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadCatalog, unavailable, createBooking, demoMode } from '@/admin/store';
-import { naturalTimes } from '@/admin/domain';
-import type { Service as CatalogService, Addon as CatalogAddon } from '@/admin/domain';
+import { defaultBookingHours } from '@/admin/domain';
+import type { Service as CatalogService, Addon as CatalogAddon, BookingHours } from '@/admin/domain';
 
 type ServiceCategory = "natural" | "cabine" | "clareamento";
 
@@ -184,10 +184,6 @@ const services: Service[] = [
   ...CLAREAMENTO_SERVICES,
 ];
 
-// Horários individuais para Bronze em Cabine e Clareamento
-const TIMES_MANHA = ["08:00", "09:00", "10:00", "11:00"];
-const TIMES_TARDE = ["15:00", "16:00", "17:00", "18:00", "19:00"];
-
 const DAYS    = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const WEEKDAYS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
@@ -235,7 +231,7 @@ function formatCurrency(value: number) {
 }
 
 export function Booking() {
-  const [catalog, setCatalog] = useState<{services:CatalogService[];addons:CatalogAddon[]}|null>(null);
+  const [catalog, setCatalog] = useState<{services:CatalogService[];addons:CatalogAddon[];bookingHours:BookingHours}|null>(null);
   const [bookingError, setBookingError] = useState('');
   const [availabilityReady, setAvailabilityReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -313,6 +309,9 @@ export function Booking() {
   const isCabine = serviceCategory === "cabine";
   const isClareamento = serviceCategory === "clareamento";
   const isTimedService = true;
+  const categoryHours = catalog?.bookingHours?.[serviceCategory] || defaultBookingHours[serviceCategory];
+  const morningHours = isNatural ? categoryHours : categoryHours.filter(t=>Number(t.slice(0,2))<12);
+  const afternoonHours = isNatural ? [] : categoryHours.filter(t=>Number(t.slice(0,2))>=15);
   const selectedAddOns = additionalServices.filter((addOn) => selectedAddOnIds.includes(addOn.id));
   const totalPrice = formatCurrency(
     priceToNumber(service.price) + selectedAddOns.reduce((total, addOn) => total + priceToNumber(addOn.price), 0),
@@ -622,7 +621,7 @@ export function Booking() {
                         <div>
                           <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {(isNatural ? naturalTimes : TIMES_MANHA).map((t) => {
+                            {morningHours.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = !availabilityReady || bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
@@ -650,7 +649,7 @@ export function Booking() {
                         <div className={isNatural ? "hidden" : ""}>
                           <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
                           <div className="grid grid-cols-4 gap-2">
-                            {(isNatural ? [] : TIMES_TARDE).map((t) => {
+                            {afternoonHours.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = !availabilityReady || bookedTimes.includes(horarioNormalizado);
                               const sel = time === t;
@@ -911,3 +910,4 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
     </div>
   );
 }
+
