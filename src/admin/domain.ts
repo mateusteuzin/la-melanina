@@ -40,7 +40,11 @@ export function validateBooking(a:Appointment,services:Service[],allowPast=true)
  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.date) || !Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==a.date) throw new Error('Data inválida.');
  if (d.getDay()===1) throw new Error('O estúdio está fechado na segunda-feira.');
  if (!allowPast && a.date<todayISO()) throw new Error('Escolha uma data a partir de hoje.');
- if (!(service.category==='natural'?naturalTimes:times).includes(a.time)) throw new Error('Horário inválido.');
+ if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) throw new Error('Horário inválido. Use o formato HH:MM.');
+ const start=minutes(a.time);
+ if (start%5!==0) throw new Error('Use intervalos de 5 minutos.');
+ if (service.category==='natural' && (start<480||start>=660)) throw new Error('Horário de chegada do bronze natural deve ser entre 08h e 11h.');
+ if (service.category!=='natural' && !((start>=480&&start<720)||(start>=900&&start<1200))) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 12h ou 15h e 20h.');
  if (service.category!=='natural' && minutes(a.time)+service.duration>20*60) throw new Error('Atendimento ultrapassa o horário de fechamento (20h).');
  if (a.phone && !/^\d{10,13}$/.test(a.phone.replace(/\D/g,''))) throw new Error('Informe um telefone válido com DDD.');
 }
