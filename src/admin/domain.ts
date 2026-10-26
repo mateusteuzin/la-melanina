@@ -5,6 +5,7 @@ export interface Addon { id:string; name:string; price:number }
 export interface Payment { id:string; amount:number; date:string; method:string }
 export interface Appointment { id:string; name:string; phone:string; serviceId:string; serviceName:string; date:string; time:string; duration:number; category:Category; amount:number; status:Status; notes:string; addons:string[]; payments:Payment[]; history:{at:string;message:string}[]; createdAt:string }
 export interface Block { id:string; date:string; time:string; reason:string }
+export type BookingHours = { natural:string[]; cabine:string[]; clareamento:string[] };
 export const labels:Record<Status,string> = {pendente:'Pendente',confirmado:'Confirmado',concluido:'Concluído',cancelado:'Cancelado',faltou:'Não compareceu'};
 export const seedServices:Service[] = [
  {id:'bronze-turbo',name:'Bronze Turbo',price:75,duration:180,category:'natural',active:true,desc:'Parafina, 2 ativadores e banho de lua clareador.'},
@@ -21,6 +22,7 @@ export const seedAddons:Addon[] = [{id:'clareamento-area',name:'Clareamento de �
 export const times = ['08:00','09:00','10:00','11:00','15:00','16:00','17:00','18:00','19:00'];
 export const naturalTimes = ['08:00','08:10','08:15','08:30','08:45','09:00','09:10','09:15','09:30','09:35','09:40'];
 export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
+export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:[...times], clareamento:[...times] };
 export const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export function todayISO() { return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Fortaleza',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 export const dateLabel = (s:string) => s.split('-').reverse().join('/');
@@ -52,3 +54,4 @@ export function monthlySummary(rows:Appointment[],month:string) {
  const inMonth=rows.filter(a=>a.date.startsWith(month));
  return { received:rows.reduce((v,a)=>v+a.payments.filter(p=>p.date.startsWith(month)).reduce((s,p)=>s+p.amount,0),0), expected:inMonth.filter(a=>active(a.status)).reduce((v,a)=>v+Math.max(0,a.amount-paid(a)),0), completed:inMonth.filter(a=>a.status==='concluido').length, revenue:inMonth.filter(a=>a.status==='concluido').reduce((v,a)=>v+a.amount,0), bookings:inMonth.filter(a=>active(a.status)).length };
 }
+
