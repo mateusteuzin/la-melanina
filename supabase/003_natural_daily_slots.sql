@@ -96,5 +96,26 @@ begin
  return result;
 end;
 $$;
-commit;
+-- Cancelar ou marcar falta não precisa revalidar a disponibilidade atual.
+-- Isso permite liberar reservas anteriores às 12 vagas fixas do bronze natural.
+create or replace function public.update_booking(p_id uuid,p_patch jsonb)
+returns void language plpgsql security definer set search_path='' as $$
+declare a jsonb;
+begin
+ if not public.is_studio_admin() then raise exception 'Acesso administrativo necessário.'; end if;
+ perform pg_advisory_xact_lock(761954201);
+ select data into a from public.appointments where id=p_id for update;
+ if a is null then raise exception 'Agendamento não encontrado.'; end if;
+ -- Only editable fields can change; prices, payments, duration and service remain historical.
+ a:=a||jsonb_build_object('name',trim(coalesce(p_patch->>'name',a->>'name')),'phone',regexp_replace(coalesce(p_patch->>'phone',a->>'phone'),'\D','','g'),
+ 'date',coalesce(p_patch->>'date',a->>'date'),'time',coalesce(p_patch->>'time',a->>'time'),'status',coalesce(p_patch->>'status',a->>'status'),'notes',coalesce(p_patch->>'notes',a->>'notes'));
+ if a->>'status' not in('cancelado','faltou') then
+  perform melanina_private.validate_booking(a,true);
+  perform melanina_private.assert_available(a);
+ end if;
+ a:=jsonb_set(a,'{history}',a->'history'||jsonb_build_array(jsonb_build_object('at',now(),'message','Atualizado: '||(a->>'status')||' • '||(a->>'date')||' • '||(a->>'time'))));
+ update public.appointments set data=a where id=p_id;
+end;
+$$;
 
+commit;
