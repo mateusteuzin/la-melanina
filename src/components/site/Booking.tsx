@@ -25,7 +25,7 @@ import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadCatalog, unavailable, createBooking, demoMode } from '@/admin/store';
-import { defaultBookingHours } from '@/admin/domain';
+import { defaultBookingHours, naturalSlotLabel, naturalTimes } from '@/admin/domain';
 import type { Service as CatalogService, Addon as CatalogAddon, BookingHours } from '@/admin/domain';
 
 type ServiceCategory = "natural" | "cabine" | "clareamento";
@@ -309,7 +309,7 @@ export function Booking() {
   const isCabine = serviceCategory === "cabine";
   const isClareamento = serviceCategory === "clareamento";
   const isTimedService = true;
-  const categoryHours = catalog?.bookingHours?.[serviceCategory] || defaultBookingHours[serviceCategory];
+  const categoryHours = isNatural ? naturalTimes : catalog?.bookingHours?.[serviceCategory] || defaultBookingHours[serviceCategory];
   const morningHours = isNatural ? categoryHours : categoryHours.filter(t=>Number(t.slice(0,2))<12);
   const afternoonHours = isNatural ? [] : categoryHours.filter(t=>Number(t.slice(0,2))>=15);
   const selectedAddOns = additionalServices.filter((addOn) => selectedAddOnIds.includes(addOn.id));
@@ -364,7 +364,7 @@ export function Booking() {
     const addOnsText = selectedAddOns.length
       ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
       : "";
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} às ${displayTime}.${addOnsText}\nValor total: ${totalPrice}\n\nPoderiam confirmar a disponibilidade desse horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPoderiam confirmar a disponibilidade?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -600,7 +600,7 @@ export function Booking() {
                     {isNatural && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3 text-xs sm:text-sm text-rose-900 dark:text-rose-100">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
-                        <span><span className="font-semibold">Horário de chegada:</span> Escolha seu horário individual para o bronze natural. As clientes podem permanecer em atendimento ao mesmo tempo.</span>
+                        <span><span className="font-semibold">Horário de chegada:</span> Escolha uma das 12 vagas do dia. Não é necessário escolher horário. Sábado: 08h às 11h e 14h às 16h; domingo: 08h às 12h.</span>
                       </div>
                     )}
                     {isCabine && (
@@ -619,7 +619,7 @@ export function Booking() {
                     {isTimedService && (
                       <div className="mt-4 space-y-3">
                         <div>
-                          <div className="text-xs font-semibold text-foreground mb-2">Manhã</div>
+                          <div className="text-xs font-semibold text-foreground mb-2">{isNatural ? "Vagas disponíveis" : "Manhã"}</div>
                           <div className="grid grid-cols-4 gap-2">
                             {morningHours.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
@@ -688,7 +688,7 @@ export function Booking() {
           <div className="hidden rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft lg:block">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">Como funciona o agendamento</h3>
             <ol className="space-y-4">
-              {["Escolha o serviço", "Escolha a data e horário", "Confirme no WhatsApp"].map((t, i) => (
+              {["Escolha o serviço", "Escolha a data e a vaga ou horário", "Confirme no WhatsApp"].map((t, i) => (
                 <li key={t} className="flex gap-3 sm:gap-4">
                   <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-full bg-wine text-sm font-semibold text-wine-foreground">{i + 1}</div>
                   <div>
@@ -697,7 +697,7 @@ export function Booking() {
                       {i === 0
                         ? "Selecione o serviço principal e, se quiser, marque opções em Adicione também."
                         : i === 1
-                          ? "Veja os horários disponíveis e escolha o melhor para você."
+                          ? "Escolha uma das 12 vagas do dia para o bronze natural ou um horário para os outros serviços."
                           : "Você será direcionada para o WhatsApp com todos os detalhes do agendamento."}
                     </p>
                   </div>
@@ -724,7 +724,7 @@ export function Booking() {
                 <Row key={addOn.id} icon={<Sparkles className="size-4" />} label="Adicional" value={`${addOn.name} — ${addOn.price}`} />
               ))}
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
-              <Row icon={<Clock className="size-4" />} label="Horário" value={selectedTimeDisplay} />
+              <Row icon={<Clock className="size-4" />} label={isNatural?"Vaga":"Horário"} value={selectedTimeDisplay} />
               <div className="border-t border-border pt-2 mt-2">
                 <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
               </div>
