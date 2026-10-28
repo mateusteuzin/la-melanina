@@ -12,6 +12,8 @@ Importe este repositório e configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_
 
 O banco já configurado deve ser mantido. `supabase/001_admin.sql` é a instalação inicial para um banco novo; não execute novamente sobre o banco existente. O acesso administrativo depende de Authentication e da tabela `admin_members`.
 
+Para ativar as 12 vagas diárias do bronze natural, aplique `supabase/003_natural_daily_slots.sql` no SQL Editor do Supabase depois dos demais scripts de banco, em instalações novas ou existentes.
+
 ## Agenda
 
 Confirmar e concluir mantêm o horário reservado. Cancelar ou marcar falta libera a vaga; remarcar libera o horário anterior. Pagamentos são registrados separadamente e entram no mês da data do recebimento.

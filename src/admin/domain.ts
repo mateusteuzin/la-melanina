@@ -20,7 +20,8 @@ export const seedServices:Service[] = [
 ];
 export const seedAddons:Addon[] = [{id:'clareamento-area',name:'Clareamento de Área',price:10},{id:'argiloterapia-facial',name:'Argiloterapia Facial',price:10},{id:'tatuagem-temporaria',name:'Tatuagem Temporária',price:5},{id:'tattoo-solar',name:'Tattoo Solar',price:5},{id:'intensificacao-alcinha',name:'Intensificação de Alcinha',price:15}];
 export const times = ['08:00','09:00','10:00','11:00','15:00','16:00','17:00','18:00','19:00'];
-export const naturalTimes = ['08:00','08:10','08:15','08:30','08:45','09:00','09:10','09:15','09:30','09:35','09:40'];
+export const naturalTimes = Array.from({length:12},(_,i)=>`Vaga ${i+1}`);
+export const naturalSlotLabel = (slot:string) => slot;
 export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
 export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:[...times], clareamento:[...times] };
 export const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -42,12 +43,15 @@ export function validateBooking(a:Appointment,services:Service[],allowPast=true)
  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.date) || !Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==a.date) throw new Error('Data inválida.');
  if (d.getDay()===1) throw new Error('O estúdio está fechado na segunda-feira.');
  if (!allowPast && a.date<todayISO()) throw new Error('Escolha uma data a partir de hoje.');
- if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) throw new Error('Horário inválido. Use o formato HH:MM.');
- const start=minutes(a.time);
- if (start%5!==0) throw new Error('Use intervalos de 5 minutos.');
- if (service.category==='natural' && (start<480||start>=660)) throw new Error('Horário de chegada do bronze natural deve ser entre 08h e 11h.');
- if (service.category!=='natural' && !((start>=480&&start<720)||(start>=900&&start<1200))) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 12h ou 15h e 20h.');
- if (service.category!=='natural' && minutes(a.time)+service.duration>20*60) throw new Error('Atendimento ultrapassa o horário de fechamento (20h).');
+ if(service.category==='natural') {
+  if(!naturalTimes.includes(a.time)) throw new Error('Escolha uma das 12 vagas do bronze natural.');
+ } else {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) throw new Error('Horário inválido. Use o formato HH:MM.');
+  const start=minutes(a.time);
+  if (start%5!==0) throw new Error('Use intervalos de 5 minutos.');
+  if (!((start>=480&&start<720)||(start>=900&&start<1200))) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 12h ou 15h e 20h.');
+  if (minutes(a.time)+service.duration>20*60) throw new Error('Atendimento ultrapassa o horário de fechamento (20h).');
+ }
  if (a.phone && !/^\d{10,13}$/.test(a.phone.replace(/\D/g,''))) throw new Error('Informe um telefone válido com DDD.');
 }
 export function monthlySummary(rows:Appointment[],month:string) {
