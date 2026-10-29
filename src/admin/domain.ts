@@ -30,9 +30,18 @@ export const dateLabel = (s:string) => s.split('-').reverse().join('/');
 export const active = (s:string) => !['cancelado','faltou'].includes(s);
 export const paid = (a:Appointment) => a.payments.reduce((v,p)=>v+p.amount,0);
 const minutes = (s:string) => Number(s.slice(0,2))*60+Number(s.slice(3,5));
+const periodRange = (time:string) => time===periods[0] ? [480,720] : time===periods[1] ? [900,1200] : null;
 export function conflicts(rows:Appointment[],blocks:Block[],candidate:Appointment) {
  if (!active(candidate.status)) return false;
- if (blocks.some(b=>b.date===candidate.date && (b.time==='dia' || b.time===candidate.time || (candidate.category==='natural' && ((b.time===periods[0] && minutes(candidate.time)>=480 && minutes(candidate.time)<660)||(b.time===periods[1] && minutes(candidate.time)>=900 && minutes(candidate.time)<1140))) || (candidate.category!=='natural' && /^\d\d:\d\d$/.test(b.time) && minutes(candidate.time)<minutes(b.time)+60 && minutes(b.time)<minutes(candidate.time)+candidate.duration)))) return true;
+ if (blocks.some(b=>{
+  if(b.date!==candidate.date) return false;
+  if(b.time==='dia'||b.time===candidate.time) return true;
+  if(candidate.category==='natural') return false;
+  const start=minutes(candidate.time);
+  const range=periodRange(b.time);
+  if(range) return start<range[1]&&range[0]<start+candidate.duration;
+  return /^\d\d:\d\d$/.test(b.time)&&start<minutes(b.time)+60&&minutes(b.time)<start+candidate.duration;
+ })) return true;
  return rows.some(a=>a.id!==candidate.id && a.date===candidate.date && active(a.status) && (a.category==='natural' || candidate.category==='natural' ? a.category===candidate.category && a.time===candidate.time : minutes(candidate.time)<minutes(a.time)+a.duration && minutes(a.time)<minutes(candidate.time)+candidate.duration));
 }
 export function validateBooking(a:Appointment,services:Service[],allowPast=true) {
@@ -58,4 +67,3 @@ export function monthlySummary(rows:Appointment[],month:string) {
  const inMonth=rows.filter(a=>a.date.startsWith(month));
  return { received:rows.reduce((v,a)=>v+a.payments.filter(p=>p.date.startsWith(month)).reduce((s,p)=>s+p.amount,0),0), expected:inMonth.filter(a=>active(a.status)).reduce((v,a)=>v+Math.max(0,a.amount-paid(a)),0), completed:inMonth.filter(a=>a.status==='concluido').length, revenue:inMonth.filter(a=>a.status==='concluido').reduce((v,a)=>v+a.amount,0), bookings:inMonth.filter(a=>active(a.status)).length };
 }
-

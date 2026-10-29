@@ -76,6 +76,13 @@ const navigation = [
 ] as const;
 const monthName = (m: string) =>
   new Date(m + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+const blockLabel = (time: string) => {
+  if (time === 'dia') return 'Dia inteiro';
+  if (naturalTimes.includes(time)) return `${time} • bronze natural`;
+  if (time === periods[0]) return 'Manhã (08h às 12h) • cabine e clareamento';
+  if (time === periods[1]) return 'Tarde (15h às 20h) • cabine e clareamento';
+  return `${time} • 1 hora`;
+};
 const initial = (s: string) =>
   s
     .trim()
@@ -178,7 +185,9 @@ export function Admin() {
   const [payDate, setPayDate] = useState(todayISO());
   const [payMethod, setPayMethod] = useState('Pix');
   const [blockDate, setBlockDate] = useState(todayISO());
-  const [blockTime, setBlockTime] = useState('dia');
+  const [blockType, setBlockType] = useState('dia');
+  const [blockClock, setBlockClock] = useState('08:00');
+  const [blockSlot, setBlockSlot] = useState(naturalTimes[0]);
   const [blockReason, setBlockReason] = useState('');
 
   const refresh = async () => {
@@ -1195,7 +1204,7 @@ export function Admin() {
                     <div className="adm-card-heading">
                       <div>
                         <h2>Bloquear disponibilidade</h2>
-                        <p>Reserve uma pausa, um compromisso ou um dia de folga.</p>
+                        <p>Escolha o que ficará indisponível para novas reservas.</p>
                       </div>
                       <Ban size={19} />
                     </div>
@@ -1207,10 +1216,15 @@ export function Admin() {
                           () =>
                             addBlock({
                               date: blockDate,
-                              time: blockTime,
+                              time:
+                                blockType === 'horario'
+                                  ? blockClock
+                                  : blockType === 'vaga-natural'
+                                    ? blockSlot
+                                    : blockType,
                               reason: blockReason,
                             }),
-                          'Horário bloqueado.',
+                          'Bloqueio aplicado.',
                           () => setBlockReason('')
                         );
                       }}
@@ -1223,20 +1237,52 @@ export function Admin() {
                           onInput={(e) => setBlockDate(e.currentTarget.value)}
                         />
                       </Field>
-                      <Field label="Horário ou período">
+                      <Field label="O que deseja bloquear?">
                         <select
-                          value={blockTime}
-                          onChange={(e) => setBlockTime(e.target.value)}
+                          value={blockType}
+                          onChange={(e) => setBlockType(e.target.value)}
                         >
-                          {['dia', ...periods, ...new Set([...naturalTimes, ...times])].map(
-                            (t) => (
-                              <option key={t} value={t}>
-                                {t === 'dia' ? 'Dia inteiro' : t}
-                              </option>
-                            )
-                          )}
+                          <option value="dia">Dia inteiro — todos os serviços</option>
+                          <optgroup label="Cabine e clareamento">
+                            <option value={periods[0]}>Manhã — das 08h às 12h</option>
+                            <option value={periods[1]}>Tarde — das 15h às 20h</option>
+                            <option value="horario">Uma hora a partir de um horário</option>
+                          </optgroup>
+                          <optgroup label="Bronze natural">
+                            <option value="vaga-natural">Uma vaga específica</option>
+                          </optgroup>
                         </select>
                       </Field>
+                      {blockType === 'horario' && (
+                        <Field label="Horário de início">
+                          <input
+                            type="time"
+                            required
+                            step={300}
+                            value={blockClock}
+                            onInput={(e) => setBlockClock(e.currentTarget.value)}
+                          />
+                        </Field>
+                      )}
+                      {blockType === 'vaga-natural' && (
+                        <Field label="Vaga do bronze natural">
+                          <select
+                            value={blockSlot}
+                            onChange={(e) => setBlockSlot(e.target.value)}
+                          >
+                            {naturalTimes.map((slot) => (
+                              <option key={slot} value={slot}>
+                                {slot}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      )}
+                      <p className="adm-help">
+                        Um horário bloqueia uma hora a partir do início. O bronze natural usa
+                        vagas numeradas; períodos da manhã e da tarde valem para cabine e
+                        clareamento.
+                      </p>
                       <Field label="Motivo">
                         <input
                           required
@@ -1247,7 +1293,7 @@ export function Admin() {
                         />
                       </Field>
                       <button disabled={busy} className="adm-button primary">
-                        <Ban size={16} /> Bloquear horário
+                        <Ban size={16} /> Aplicar bloqueio
                       </button>
                     </form>
                   </section>
@@ -1261,7 +1307,7 @@ export function Admin() {
                         <div key={b.id}>
                           <span>
                             <strong>
-                              {dateLabel(b.date)} • {b.time === 'dia' ? 'Dia inteiro' : b.time}
+                              {dateLabel(b.date)} • {blockLabel(b.time)}
                             </strong>
                             <small>{b.reason}</small>
                           </span>

@@ -14,6 +14,8 @@ O banco já configurado deve ser mantido. `supabase/001_admin.sql` é a instala�
 
 Para ativar as 12 vagas diárias do bronze natural, aplique `supabase/003_natural_daily_slots.sql` no SQL Editor do Supabase depois dos demais scripts de banco, em instalações novas ou existentes.
 
+Para corrigir e aplicar bloqueios por dia, período, horário ou vaga do bronze natural, aplique também `supabase/004_reliable_availability_blocks.sql` depois dos outros scripts de banco.
+
 ## Agenda
 
 Confirmar e concluir mantêm o horário reservado. Cancelar ou marcar falta libera a vaga; remarcar libera o horário anterior. Pagamentos são registrados separadamente e entram no mês da data do recebimento.

@@ -4,15 +4,20 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 const db=new PGlite();
 const admin='00000000-0000-4000-8000-000000000001';
-let date; let id;
+let date; let periodDate; let id;
 const query=(sql,args=[])=>db.query(sql,args);
+const migration=(name)=>readFileSync(new URL(`../supabase/${name}`,import.meta.url),'utf8').replace(/^\uFEFF/,'');
 const role=async(r,user='')=>{await db.exec('reset role');await query("select set_config('test.uid',$1,false)",[user]);await db.exec('set role '+r);};
 const input=(time='09:00',serviceId='duplo')=>({name:'Cliente de teste',phone:'88999999999',serviceId,date,time,notes:'Teste',addons:[],amount:1,status:'concluido'});
 before(async()=>{
  await db.exec(`create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid',true),'')::uuid $$; grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;`);
- await db.exec(readFileSync(new URL('../supabase/001_admin.sql',import.meta.url),'utf8'));
+ await db.exec(migration('001_admin.sql'));
+ await db.exec(migration('002_booking_hours.sql'));
+ await db.exec(migration('003_natural_daily_slots.sql'));
+ await db.exec(migration('004_reliable_availability_blocks.sql'));
  await query('insert into auth.users values($1)',[admin]);await query('insert into public.admin_members values($1)',[admin]);
  const r=await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+1,current_date+7,interval '1 day') d where extract(dow from d)<>1 limit 1");date=r.rows[0].d;
+ const p=await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+8,current_date+20,interval '1 day') d where extract(dow from d)<>1 limit 1");periodDate=p.rows[0].d;
 });
 after(()=>db.close());
 test('catálogo público disponível; dados de clientes privados',async()=>{
@@ -61,17 +66,31 @@ test('adicionais duplicados e datas inválidas são rejeitados',async()=>{
 });
 test('horário ausente é rejeitado e flag admin nula continua sendo solicitação pública',async()=>{
  await role('anon');
- await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input('15:00','bronze-turbo'),time:null})]),/Horário/);
+ await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input('15:00','bronze-turbo'),time:null})]),/vaga|horário/i);
  await assert.rejects(query('select public.create_booking($1::jsonb,null)',[JSON.stringify({...input('15:00','solazul'),phone:''})]),/telefone/i);
 });
-test('natural permite chegadas próximas, reserva uma cliente por horário e bloqueia a manhã',async()=>{
+test('bronze natural reserva vagas numeradas e aceita bloquear uma vaga',async()=>{
  await role('anon');
- const n={...input('08:10','bronze-turbo'),phone:'88911111111'};
+ const n={...input('Vaga 1','bronze-turbo'),phone:'88911111111'};
  await query('select public.create_booking($1::jsonb,false)',[JSON.stringify(n)]);
- await query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...n,time:'08:15'})]);
+ await query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...n,time:'Vaga 2'})]);
  await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify(n)]),/conflito/);
  const unavailable=(await query('select public.unavailable_times($1,$2) times',[date,'bronze-turbo'])).rows[0].times;
- assert.ok(unavailable.includes('08:10'));assert.ok(unavailable.includes('08:15'));assert.ok(!unavailable.includes('08:30'));
+ assert.ok(unavailable.includes('Vaga 1'));assert.ok(unavailable.includes('Vaga 2'));
  await role('authenticated',admin);
- await assert.rejects(query("select public.add_block($1,'Manhã (08h-11h)','Pausa')",[date]),/atendimento/);
+ await query("select public.add_block($1,'Vaga 3','Pausa')",[date]);
+ await role('anon');
+ const afterBlock=(await query('select public.unavailable_times($1,$2) times',[date,'bronze-turbo'])).rows[0].times;
+ assert.ok(afterBlock.includes('Vaga 1'));assert.ok(afterBlock.includes('Vaga 2'));assert.ok(afterBlock.includes('Vaga 3'));
+ await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...n,time:'Vaga 3'})]),/conflito/);
+});
+test('bloqueios de período e horário ficam indisponíveis na agenda pública',async()=>{
+ await role('authenticated',admin);
+ await query("select public.add_block($1,'Manhã (08h-11h)','Pausa')",[periodDate]);
+ await query("select public.add_block($1,'15:10','Compromisso')",[periodDate]);
+ await role('anon');
+ const timed=(await query('select public.unavailable_times($1,$2) times',[periodDate,'solazul'])).rows[0].times;
+ assert.ok(timed.includes('08:00'));assert.ok(timed.includes('11:00'));assert.ok(timed.includes('15:00'));assert.ok(timed.includes('16:00'));assert.ok(!timed.includes('17:00'));
+ const natural=(await query('select public.unavailable_times($1,$2) times',[periodDate,'bronze-turbo'])).rows[0].times;
+ assert.ok(!natural.includes('Vaga 1'));
 });
