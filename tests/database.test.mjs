@@ -94,3 +94,34 @@ test('bloqueios de período e horário ficam indisponíveis na agenda pública',
  const natural=(await query('select public.unavailable_times($1,$2) times',[periodDate,'bronze-turbo'])).rows[0].times;
  assert.ok(!natural.includes('Vaga 1'));
 });
+
+test('weekly configuration supports Monday, weekend slots and 20:30 bookings',async()=>{
+ await role('authenticated',admin);
+ await db.exec('reset role');
+ await db.exec(migration('005_flexible_weekly_hours.sql'));
+ await role('authenticated',admin);
+ const config=(await query('select public.get_booking_hours() h')).rows[0].h;
+ assert.deepEqual(config.cabine,['14:30','15:30','16:30','17:30','18:30','19:30','20:30']);
+ assert.deepEqual(config.cabineSaturday,['14:00','15:00','16:00','17:00']);
+ assert.deepEqual(config.cabineSunday,['08:00','09:00','10:00','11:00']);
+ const monday=(await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+21,current_date+28,interval '1 day') d where extract(dow from d)=1 limit 1")).rows[0].d;
+ await role('anon');
+ await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input('20:30','solazul'),date:monday})]),/fechado/);
+ await role('authenticated',admin);
+ await query('select public.save_booking_hours($1::jsonb)',[JSON.stringify({...config,openDays:[0,1,2,3,4,5,6]})]);
+ await role('anon');
+ await query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input('20:30','solazul'),date:monday})]);
+ const taken=(await query('select public.unavailable_times($1,$2) times',[monday,'solazul'])).rows[0].times;
+ assert.ok(taken.includes('20:30'));
+ for(const [dow,valid,invalid] of [[6,'14:00','14:30'],[0,'08:00','20:30']]) {
+  const day=(await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+30,current_date+37,interval '1 day') d where extract(dow from d)=$1 limit 1",[dow])).rows[0].d;
+  await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input(invalid,'solazul'),date:day})]),/dispon/);
+  await query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...input(valid,'solazul'),date:day})]);
+ }
+ await role('authenticated',admin);
+ await assert.rejects(query('select public.save_booking_hours($1::jsonb)',[JSON.stringify({...config,openDays:[7]})]),/semana/);
+ await query('select public.save_booking_hours($1::jsonb)',[JSON.stringify({...config,openDays:[]})]);
+ await role('anon');
+ const closed=(await query('select public.unavailable_times($1,$2) times',[monday,'solazul'])).rows[0].times;
+ assert.deepEqual(closed,config.cabine);
+});

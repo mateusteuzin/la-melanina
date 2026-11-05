@@ -45,7 +45,7 @@ import {
   periods,
 } from './domain';
 import type { Appointment, Service, Addon, Status, BookingHours } from './domain';
-import { defaultBookingHours } from './domain';
+import { defaultBookingHours, hoursForDay } from './domain';
 import {
   demoMode,
   supabase,
@@ -1327,8 +1327,8 @@ export function Admin() {
                   <section className="adm-card adm-connection">
                     <h2>Funcionamento do estúdio</h2>
                     <p>
-                      Terça a domingo • horários de 08h às 11h e de 15h às 19h. Último atendimento
-                      encerra até 20h.
+                      Escolha os dias de funcionamento e os horários em Disponibilidade para as
+                      clientes. É possível abrir também às segundas-feiras.
                     </p>
                     <p>
                       Bronze natural: 12 vagas por dia, sem horário escolhido. Sábado: 08h às 11h
@@ -1362,6 +1362,7 @@ export function Admin() {
 
       {newBooking && data && (
         <NewBooking
+          hours={data.bookingHours}
           services={data.services}
           addons={data.addons}
           busy={busy}
@@ -1757,25 +1758,28 @@ function BookingHoursEditor({
   save: (hours: BookingHours) => void;
 }) {
   const [draft, setDraft] = useState<BookingHours>({ ...hours, natural: [...naturalTimes] });
-  const [pending, setPending] = useState<Record<keyof BookingHours, string>>({
-    natural: '',
+  const [pending, setPending] = useState<Record<"cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", string>>({
+    cabineSaturday: '',
+    cabineSunday: '',
     cabine: '',
     clareamento: '',
   });
   useEffect(() => setDraft({ ...hours, natural: [...naturalTimes] }), [hours]);
-  const groups: [keyof BookingHours, string, string][] = [
-    ['cabine', 'Bronze em cabine', '08h às 12h e 15h às 20h'],
-    ['clareamento', 'Clareamento', '08h às 12h e 15h às 20h'],
+  const groups: ["cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", string, string][] = [
+    ['cabine', 'Cabine — dias de semana', 'Horários de segunda a sexta'],
+    ['cabineSaturday', 'Cabine — sábado', 'Horários de sábado'],
+    ['cabineSunday', 'Cabine — domingo', 'Horários de domingo'],
+    ['clareamento', 'Clareamento', '08h às 20h30'],
   ];
-  function validTime(key: keyof BookingHours, value: string) {
+  function validTime(key: "cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", value: string) {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return false;
     const minute = Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-    return minute % 5 === 0 && ((minute >= 480 && minute < 720) || (minute >= 900 && minute < 1200));
+    return minute % 5 === 0 && (minute >= 480 && minute <= 1230);
   }
-  function add(key: keyof BookingHours) {
+  function add(key: "cabine" | "clareamento" | "cabineSaturday" | "cabineSunday") {
     const value = pending[key];
-    if (!validTime(key, value) || draft[key].includes(value)) return;
-    setDraft({ ...draft, [key]: [...draft[key], value].sort() });
+    if (!validTime(key, value) || (draft[key] || defaultBookingHours[key] || []).includes(value)) return;
+    setDraft({ ...draft, [key]: [...(draft[key] || defaultBookingHours[key] || []), value].sort() });
     setPending({ ...pending, [key]: '' });
   }
   return (
@@ -1787,6 +1791,7 @@ function BookingHoursEditor({
         </div>
         <Clock size={19} />
       </div>
+      <div className="adm-form"><h3>Dias de funcionamento</h3><p>Marque os dias em que deseja abrir, incluindo segunda-feira.</p><div className="adm-hour-chips">{['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'].map((label, day) => <label key={day} className="adm-hour-chip"><input type="checkbox" checked={(draft.openDays || [0,2,3,4,5,6]).includes(day)} onChange={e => { const days=draft.openDays || [0,2,3,4,5,6]; setDraft({...draft, openDays:e.target.checked ? [...days,day].sort() : days.filter(d=>d!==day)}); }} />{label}</label>)}</div></div>
       <div className="adm-settings-hours">
         <section>
           <h3>Bronze natural</h3>
@@ -1806,12 +1811,12 @@ function BookingHoursEditor({
               <small>{range}</small>
             </div>
             <div className="adm-hour-chips">
-              {draft[key].map((t) => (
+              {(draft[key] || defaultBookingHours[key] || []).map((t) => (
                 <button
                   type="button"
                   className="adm-hour-chip"
                   key={t}
-                  onClick={() => setDraft({ ...draft, [key]: draft[key].filter((x) => x !== t) })}
+                  onClick={() => setDraft({ ...draft, [key]: (draft[key] || defaultBookingHours[key] || []).filter((x) => x !== t) })}
                   aria-label={`Remover ${t} de ${label}`}
                 >
                   {t}
@@ -1825,7 +1830,7 @@ function BookingHoursEditor({
                   type="time"
                   step={300}
                   min="08:00"
-                  max="19:55"
+                  max="20:30"
                   value={pending[key]}
                   onInput={(e) => setPending({ ...pending, [key]: e.currentTarget.value })}
                 />
@@ -1834,7 +1839,7 @@ function BookingHoursEditor({
                 type="button"
                 className="adm-button"
                 onClick={() => add(key)}
-                disabled={!validTime(key, pending[key]) || draft[key].includes(pending[key])}
+                disabled={!validTime(key, pending[key]) || (draft[key] || defaultBookingHours[key] || []).includes(pending[key])}
               >
                 Adicionar
               </button>
@@ -1860,12 +1865,14 @@ function BookingHoursEditor({
 }
 
 function NewBooking({
+  hours,
   services,
   addons,
   busy,
   close,
   save,
 }: {
+  hours: BookingHours;
   services: Service[];
   addons: Addon[];
   busy: boolean;
@@ -1882,6 +1889,8 @@ function NewBooking({
     addons: [] as string[],
   });
   const service = services.find((s) => s.id === input.serviceId);
+  const availableHours = service ? hoursForDay(hours, service.category, new Date(input.date+'T12:00:00').getDay()) : [];
+  useEffect(() => { if (!availableHours.includes(input.time)) setInput(previous => ({...previous,time:availableHours[0] || ''})); }, [input.date, input.serviceId, hours]);
   const total =
     (service?.price || 0) +
     addons.filter((a) => input.addons.includes(a.id)).reduce((v, a) => v + a.price, 0);
@@ -1924,7 +1933,7 @@ function NewBooking({
               setInput({
                 ...input,
                 serviceId: s.id,
-                time: s.category === 'natural' ? naturalTimes[0] : times[0],
+                time: hoursForDay(hours,s.category,new Date(input.date+'T12:00:00').getDay())[0] || '',
               });
             }}
           >
@@ -1951,7 +1960,7 @@ function NewBooking({
               value={input.time}
               onChange={(e) => setInput({ ...input, time: e.target.value })}
             >
-              {(service?.category === 'natural' ? naturalTimes : times).map((t) => (
+              {availableHours.map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>

@@ -35,7 +35,7 @@ test('financeiro atribui recebimento ao mês do pagamento e ignora previsão can
 test('valida nome, data real, segunda-feira fechada e horários permitidos', () => {
  assert.throws(() => validateBooking({...appointment,name:''},seedServices), /nome/i);
  assert.throws(() => validateBooking({...appointment,date:'2026-02-31'},seedServices), /data/i);
- assert.throws(() => validateBooking({...appointment,date:'2026-10-12'},seedServices), /segunda/i);
+ assert.throws(() => validateBooking({...appointment,date:'2026-10-12'},seedServices), /fechado/i);
  assert.throws(() => validateBooking({...appointment,time:'03:00'},seedServices), /horário/i);
 });
 test('bronze natural usa vagas numeradas e reserva apenas uma cliente por vaga', () => {

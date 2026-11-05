@@ -25,7 +25,7 @@ import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadCatalog, unavailable, createBooking, demoMode } from '@/admin/store';
-import { defaultBookingHours, naturalSlotLabel, naturalTimes } from '@/admin/domain';
+import { defaultBookingHours, isOpenDay, hoursForDay, naturalSlotLabel, naturalTimes } from '@/admin/domain';
 import type { Service as CatalogService, Addon as CatalogAddon, BookingHours } from '@/admin/domain';
 
 type ServiceCategory = "natural" | "cabine" | "clareamento";
@@ -292,7 +292,7 @@ export function Booking() {
 
     for (let d = 1; d <= lastDay; d++) {
       const date = new Date(view.y, view.m, d);
-      arr.push({ date, current: true, disabled: date < t0 || date.getDay() === 1 });
+      arr.push({ date, current: true, disabled: date < t0 || !isOpenDay(catalog?.bookingHours || defaultBookingHours, date.getDay()) });
     }
 
     while (arr.length % 7 !== 0) {
@@ -301,7 +301,7 @@ export function Booking() {
     }
 
     return arr;
-  }, [view]);
+  }, [view, catalog]);
 
   const service = services.find((s) => s.id === serviceId) || services[0];
   const serviceCategory = getServiceCategory(serviceId);
@@ -309,9 +309,9 @@ export function Booking() {
   const isCabine = serviceCategory === "cabine";
   const isClareamento = serviceCategory === "clareamento";
   const isTimedService = true;
-  const categoryHours = isNatural ? naturalTimes : catalog?.bookingHours?.[serviceCategory] || defaultBookingHours[serviceCategory];
+  const categoryHours = isNatural ? naturalTimes : hoursForDay(catalog?.bookingHours || defaultBookingHours, serviceCategory, selected?.getDay() ?? 2);
   const morningHours = isNatural ? categoryHours : categoryHours.filter(t=>Number(t.slice(0,2))<12);
-  const afternoonHours = isNatural ? [] : categoryHours.filter(t=>Number(t.slice(0,2))>=15);
+  const afternoonHours = isNatural ? [] : categoryHours.filter(t=>Number(t.slice(0,2))>=12);
   const selectedAddOns = additionalServices.filter((addOn) => selectedAddOnIds.includes(addOn.id));
   const totalPrice = formatCurrency(
     priceToNumber(service.price) + selectedAddOns.reduce((total, addOn) => total + priceToNumber(addOn.price), 0),
@@ -567,7 +567,7 @@ export function Booking() {
               <div className="grid grid-cols-7 gap-0.5">
                 {cells.map((c, i) => {
                   const sel = selected && sameDay(c.date, selected);
-                  const isMonday = c.current && c.date.getDay() === 1;
+                  const isMonday = c.current && !isOpenDay(catalog?.bookingHours || defaultBookingHours, c.date.getDay());
                   return (
                     <button
                       key={i}
@@ -590,9 +590,9 @@ export function Booking() {
                 <div className="mt-4 text-center text-xs sm:text-sm font-medium text-foreground">
                   {WEEKDAYS[selected.getDay()]}, {selected.getDate()} de {MONTHS[selected.getMonth()]}
                 </div>
-                {selected.getDay() === 1 ? (
+                {!isOpenDay(catalog?.bookingHours || defaultBookingHours, selected.getDay()) ? (
                   <div className="mt-6 text-center text-sm font-medium text-muted-foreground p-4 bg-muted/30 rounded-xl border border-border">
-                    Fechado às segundas-feiras
+                    Fechado neste dia da semana
                   </div>
                 ) : (
                   <>
@@ -618,7 +618,7 @@ export function Booking() {
                     {/* Seleção de Horários (Bronze em Cabine e Banho de Lua) */}
                     {isTimedService && (
                       <div className="mt-4 space-y-3">
-                        <div>
+                        <div className={!morningHours.length ? "hidden" : ""}>
                           <div className="text-xs font-semibold text-foreground mb-2">{isNatural ? "Vagas disponíveis" : "Manhã"}</div>
                           <div className="grid grid-cols-4 gap-2">
                             {morningHours.map((t) => {
@@ -646,8 +646,8 @@ export function Booking() {
                             })}
                           </div>
                         </div>
-                        <div className={isNatural ? "hidden" : ""}>
-                          <div className="text-xs font-semibold text-foreground mb-2">Tarde</div>
+                        <div className={isNatural || !afternoonHours.length ? "hidden" : ""}>
+                          <div className="text-xs font-semibold text-foreground mb-2">Tarde e noite</div>
                           <div className="grid grid-cols-4 gap-2">
                             {afternoonHours.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
@@ -811,7 +811,7 @@ export function Booking() {
           {mobileStep < 3 && (
             <button
               type="button"
-              disabled={mobileStep === 2 && (!selected || selected.getDay() === 1 || !time)}
+              disabled={mobileStep === 2 && (!selected || !isOpenDay(catalog?.bookingHours || defaultBookingHours, selected.getDay()) || !time)}
               onClick={() => goToStep(mobileStep === 1 ? 2 : 3)}
               className="min-h-12 flex-1 rounded-full bg-wine px-4 py-3 text-sm font-semibold text-wine-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >

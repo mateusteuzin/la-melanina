@@ -5,7 +5,7 @@ export interface Addon { id:string; name:string; price:number }
 export interface Payment { id:string; amount:number; date:string; method:string }
 export interface Appointment { id:string; name:string; phone:string; serviceId:string; serviceName:string; date:string; time:string; duration:number; category:Category; amount:number; status:Status; notes:string; addons:string[]; payments:Payment[]; history:{at:string;message:string}[]; createdAt:string }
 export interface Block { id:string; date:string; time:string; reason:string }
-export type BookingHours = { natural:string[]; cabine:string[]; clareamento:string[] };
+export type BookingHours = { natural:string[]; cabine:string[]; clareamento:string[]; cabineSaturday?:string[]; cabineSunday?:string[]; openDays?:number[] };
 export const labels:Record<Status,string> = {pendente:'Pendente',confirmado:'Confirmado',concluido:'Concluído',cancelado:'Cancelado',faltou:'Não compareceu'};
 export const seedServices:Service[] = [
  {id:'bronze-turbo',name:'Bronze Turbo',price:75,duration:180,category:'natural',active:true,desc:'Parafina, 2 ativadores e banho de lua clareador.'},
@@ -23,7 +23,9 @@ export const times = ['08:00','09:00','10:00','11:00','15:00','16:00','17:00','1
 export const naturalTimes = Array.from({length:12},(_,i)=>`Vaga ${i+1}`);
 export const naturalSlotLabel = (slot:string) => slot;
 export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
-export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:[...times], clareamento:[...times] };
+export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:['14:30','15:30','16:30','17:30','18:30','19:30','20:30'], clareamento:[...times], cabineSaturday:['14:00','15:00','16:00','17:00'], cabineSunday:['08:00','09:00','10:00','11:00'], openDays:[0,2,3,4,5,6] };
+export function isOpenDay(hours:BookingHours, day:number) { return (hours.openDays || [0,2,3,4,5,6]).includes(day); }
+export function hoursForDay(hours:BookingHours, category:Category, day:number) { return category==='cabine' && day===6 ? hours.cabineSaturday || defaultBookingHours.cabineSaturday! : category==='cabine' && day===0 ? hours.cabineSunday || defaultBookingHours.cabineSunday! : hours[category]; }
 export const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export function todayISO() { return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Fortaleza',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 export const dateLabel = (s:string) => s.split('-').reverse().join('/');
@@ -44,13 +46,13 @@ export function conflicts(rows:Appointment[],blocks:Block[],candidate:Appointmen
  })) return true;
  return rows.some(a=>a.id!==candidate.id && a.date===candidate.date && active(a.status) && (a.category==='natural' || candidate.category==='natural' ? a.category===candidate.category && a.time===candidate.time : minutes(candidate.time)<minutes(a.time)+a.duration && minutes(a.time)<minutes(candidate.time)+candidate.duration));
 }
-export function validateBooking(a:Appointment,services:Service[],allowPast=true) {
+export function validateBooking(a:Appointment,services:Service[],allowPast=true,hours:BookingHours=defaultBookingHours) {
  if (a.name.trim().length<2 || a.name.length>120) throw new Error('Informe um nome com pelo menos 2 letras.');
  const service=services.find(s=>s.id===a.serviceId);
  if (!service || !service.active) throw new Error('Serviço indisponível.');
  const d=new Date(a.date+'T12:00:00');
  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.date) || !Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==a.date) throw new Error('Data inválida.');
- if (d.getDay()===1) throw new Error('O estúdio está fechado na segunda-feira.');
+ if (!isOpenDay(hours,d.getDay())) throw new Error('O estúdio está fechado neste dia da semana.');
  if (!allowPast && a.date<todayISO()) throw new Error('Escolha uma data a partir de hoje.');
  if(service.category==='natural') {
   if(!naturalTimes.includes(a.time)) throw new Error('Escolha uma das 12 vagas do bronze natural.');
@@ -58,8 +60,8 @@ export function validateBooking(a:Appointment,services:Service[],allowPast=true)
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) throw new Error('Horário inválido. Use o formato HH:MM.');
   const start=minutes(a.time);
   if (start%5!==0) throw new Error('Use intervalos de 5 minutos.');
-  if (!((start>=480&&start<720)||(start>=900&&start<1200))) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 12h ou 15h e 20h.');
-  if (minutes(a.time)+service.duration>20*60) throw new Error('Atendimento ultrapassa o horário de fechamento (20h).');
+  if (!(start>=480&&start<=1230)) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 20h30.');
+  if (minutes(a.time)+service.duration>24*60) throw new Error('Atendimento ultrapassa o horário de fechamento (24h).');
  }
  if (a.phone && !/^\d{10,13}$/.test(a.phone.replace(/\D/g,''))) throw new Error('Informe um telefone válido com DDD.');
 }
