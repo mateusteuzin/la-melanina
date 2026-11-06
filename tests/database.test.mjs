@@ -125,3 +125,23 @@ test('weekly configuration supports Monday, weekend slots and 20:30 bookings',as
  const closed=(await query('select public.unavailable_times($1,$2) times',[monday,'solazul'])).rows[0].times;
  assert.deepEqual(closed,config.cabine);
 });
+
+test('migração restaura manhãs da cabine e preserva bloqueios da tarde',async()=>{
+ await role('postgres');
+ await db.exec(migration('005_flexible_weekly_hours.sql'));
+ await db.exec(migration('006_restore_cabin_mornings.sql'));
+ await db.exec(migration('006_restore_cabin_mornings.sql'));
+ const hours=(await query('select data from public.booking_hours where id')).rows[0].data;
+ for (const key of ['cabine','cabineSaturday']) {
+  for (const time of ['08:00','09:00','10:00','11:00']) assert.ok(hours[key].includes(time));
+  assert.equal(hours[key].length,new Set(hours[key]).size);
+ }
+ assert.ok(hours.cabine.includes('20:30'));
+ await role('authenticated',admin);
+ const future=(await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+60,current_date+66,interval '1 day') d where extract(dow from d)=2 limit 1")).rows[0].d;
+ await query("select public.add_block($1,'Tarde (15h-19h)','Pausa')",[future]);
+ await role('anon');
+ const times=(await query('select public.unavailable_times($1,$2) times',[future,'solazul'])).rows[0].times;
+ for (const time of ['08:00','09:00','10:00','11:00']) assert.ok(!times.includes(time));
+ assert.ok(times.includes('15:30'));
+});

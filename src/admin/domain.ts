@@ -23,7 +23,7 @@ export const times = ['08:00','09:00','10:00','11:00','15:00','16:00','17:00','1
 export const naturalTimes = Array.from({length:12},(_,i)=>`Vaga ${i+1}`);
 export const naturalSlotLabel = (slot:string) => slot;
 export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
-export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:['14:30','15:30','16:30','17:30','18:30','19:30','20:30'], clareamento:[...times], cabineSaturday:['14:00','15:00','16:00','17:00'], cabineSunday:['08:00','09:00','10:00','11:00'], openDays:[0,2,3,4,5,6] };
+export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:['08:00','09:00','10:00','11:00','14:30','15:30','16:30','17:30','18:30','19:30','20:30'], clareamento:[...times], cabineSaturday:['08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00'], cabineSunday:['08:00','09:00','10:00','11:00'], openDays:[0,2,3,4,5,6] };
 export function isOpenDay(hours:BookingHours, day:number) { return (hours.openDays || [0,2,3,4,5,6]).includes(day); }
 export function hoursForDay(hours:BookingHours, category:Category, day:number) { return category==='cabine' && day===6 ? hours.cabineSaturday || defaultBookingHours.cabineSaturday! : category==='cabine' && day===0 ? hours.cabineSunday || defaultBookingHours.cabineSunday! : hours[category]; }
 export const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});

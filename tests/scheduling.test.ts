@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { conflicts, monthlySummary, validateBooking, seedServices } from '../src/admin/domain.ts';
+import { conflicts, monthlySummary, validateBooking, seedServices, defaultBookingHours, hoursForDay } from '../src/admin/domain.ts';
 
 const appointment = { id:'a', name:'Ana', phone:'', serviceId:'duplo', serviceName:'Bronze Duplo', date:'2026-10-07', time:'09:00', duration:120, category:'cabine', amount:145, status:'confirmado', notes:'', addons:[], payments:[{id:'p',amount:50,date:'2026-09-30',method:'Pix'}], history:[], createdAt:'' } as any;
 test('reserva de duas horas impede sobreposição e libera o horário final', () => {
@@ -45,4 +45,15 @@ test('bronze natural usa vagas numeradas e reserva apenas uma cliente por vaga',
  assert.throws(()=>validateBooking({...natural,time:'08:10'},seedServices),/vagas/i);
  assert.equal(conflicts([natural],[],{...natural,id:'b',time:'Vaga 2'}),false);
  assert.equal(conflicts([natural],[],{...natural,id:'b'}),true);
+});
+
+test('cabine oferece manhã de terça a domingo mesmo com bloqueio da tarde', () => {
+ const block = [{id:'b',date:appointment.date,time:'Tarde (15h-19h)',reason:'Pausa'}];
+ for (const day of [0,2,3,4,5,6]) {
+  for (const time of ['08:00','09:00','10:00','11:00']) {
+   assert.ok(hoursForDay(defaultBookingHours,'cabine',day).includes(time));
+   assert.equal(conflicts([],block,{...appointment,time,duration:45}),false);
+  }
+ }
+ assert.equal(conflicts([],block,{...appointment,time:'15:00',duration:45}),true);
 });
