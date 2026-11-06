@@ -172,6 +172,8 @@ export function Admin() {
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [day, setDay] = useState(todayISO());
   const [search, setSearch] = useState('');
+  const [clientPage, setClientPage] = useState(1);
+  useEffect(() => setClientPage(1), [search]);
   const [status, setStatus] = useState('todos');
   const [onlyDay, setOnlyDay] = useState(false);
   const [detail, setDetail] = useState<Appointment | null>(null);
@@ -298,6 +300,10 @@ export function Admin() {
       return acc;
     }, {})
   ).filter((c) => `${c.name} ${c.phone}`.toLowerCase().includes(search.toLowerCase()));
+
+  const clientPageCount = Math.max(1, Math.ceil(clients.length / 12));
+  const currentClientPage = Math.min(clientPage, clientPageCount);
+  const visibleClients = clients.slice((currentClientPage - 1) * 12, currentClientPage * 12);
 
   function exportCSV() {
     const headers =
@@ -987,8 +993,8 @@ export function Admin() {
                     <span>{clients.length} clientes cadastradas pela agenda</span>
                   </div>
                   <div className="adm-client-grid">
-                    {clients.map((c, i) => (
-                      <section className="adm-card adm-client-card" key={i}>
+                    {visibleClients.map((c) => (
+                      <section className="adm-card adm-client-card" key={c.phone || c.name.toLowerCase().trim()}>
                         <span className="adm-avatar large">{initial(c.name)}</span>
                         <h2>{c.name}</h2>
                         <p>{c.phone || 'Telefone não informado'}</p>
@@ -1026,6 +1032,16 @@ export function Admin() {
                       </section>
                     ))}
                   </div>
+                  {clients.length > 0 && (
+                    <nav className="adm-client-pagination" aria-label="Páginas de clientes">
+                      <span aria-live="polite">{(currentClientPage - 1) * 12 + 1}–{Math.min(currentClientPage * 12, clients.length)} de {clients.length} clientes</span>
+                      <div>
+                        <button className="adm-button" disabled={currentClientPage === 1} onClick={() => setClientPage(currentClientPage - 1)}>Anterior</button>
+                        <span>Página {currentClientPage} de {clientPageCount}</span>
+                        <button className="adm-button" disabled={currentClientPage === clientPageCount} onClick={() => setClientPage(currentClientPage + 1)}>Próxima</button>
+                      </div>
+                    </nav>
+                  )}
                   {!clients.length && <div className="adm-empty">Nenhuma cliente encontrada.</div>}
                 </>
               )}

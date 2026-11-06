@@ -621,3 +621,11 @@
   }
   .adm-footer{padding-bottom:16px}
 }
+
+.adm-client-card{padding:16px;gap:8px}
+.adm-client-card .adm-avatar.large{width:38px;height:38px;font-size:12px}
+.adm-client-card>div{padding:10px 0;margin:0}
+.adm-client-pagination{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;color:var(--adm-muted);font-size:11px}
+.adm-client-pagination>div{display:flex;align-items:center;gap:12px}
+.adm-client-pagination button:disabled{opacity:.45;cursor:default}
+@media(max-width:600px){.adm-client-pagination{flex-direction:column}.adm-client-pagination>div{gap:8px}}
