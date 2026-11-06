@@ -45,7 +45,7 @@ import {
   periods,
 } from './domain';
 import type { Appointment, Service, Addon, Status, BookingHours } from './domain';
-import { defaultBookingHours, hoursForDay } from './domain';
+import { defaultBookingHours, hoursForService } from './domain';
 import {
   demoMode,
   supabase,
@@ -1889,7 +1889,7 @@ function NewBooking({
     addons: [] as string[],
   });
   const service = services.find((s) => s.id === input.serviceId);
-  const availableHours = service ? hoursForDay(hours, service.category, new Date(input.date+'T12:00:00').getDay()) : [];
+  const availableHours = service ? hoursForService(hours, service.category, new Date(input.date+'T12:00:00').getDay(), service.id) : [];
   useEffect(() => { if (!availableHours.includes(input.time)) setInput(previous => ({...previous,time:availableHours[0] || ''})); }, [input.date, input.serviceId, hours]);
   const total =
     (service?.price || 0) +
@@ -1933,7 +1933,7 @@ function NewBooking({
               setInput({
                 ...input,
                 serviceId: s.id,
-                time: hoursForDay(hours,s.category,new Date(input.date+'T12:00:00').getDay())[0] || '',
+                time: hoursForService(hours,s.category,new Date(input.date+'T12:00:00').getDay(),s.id)[0] || '',
               });
             }}
           >

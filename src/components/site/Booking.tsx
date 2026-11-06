@@ -25,7 +25,7 @@ import { WhatsappIcon } from "./WhatsappIcon";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadCatalog, unavailable, createBooking, demoMode } from '@/admin/store';
-import { defaultBookingHours, isOpenDay, hoursForDay, naturalSlotLabel, naturalTimes } from '@/admin/domain';
+import { defaultBookingHours, isOpenDay, hoursForService, naturalSlotLabel, naturalTimes } from '@/admin/domain';
 import type { Service as CatalogService, Addon as CatalogAddon, BookingHours } from '@/admin/domain';
 
 type ServiceCategory = "natural" | "cabine" | "clareamento";
@@ -107,7 +107,7 @@ const CABINE_SERVICES: Service[] = [
     name: "Bronze Duplo",
     duration: "2 horas",
     price: "R$ 145,00",
-    desc: "Bronze artificial turbo + bronze natural no sol.",
+    desc: "Bronze artificial turbo + bronze natural no sol. Agendamento somente pela manhã.",
     Icon: Infinity,
     category: "cabine"
   },
@@ -309,7 +309,7 @@ export function Booking() {
   const isCabine = serviceCategory === "cabine";
   const isClareamento = serviceCategory === "clareamento";
   const isTimedService = true;
-  const categoryHours = isNatural ? naturalTimes : hoursForDay(catalog?.bookingHours || defaultBookingHours, serviceCategory, selected?.getDay() ?? 2);
+  const categoryHours = isNatural ? naturalTimes : hoursForService(catalog?.bookingHours || defaultBookingHours, serviceCategory, selected?.getDay() ?? 2, serviceId);
   const morningHours = isNatural ? categoryHours : categoryHours.filter(t=>Number(t.slice(0,2))<12);
   const afternoonHours = isNatural ? [] : categoryHours.filter(t=>Number(t.slice(0,2))>=12);
   const selectedAddOns = additionalServices.filter((addOn) => selectedAddOnIds.includes(addOn.id));

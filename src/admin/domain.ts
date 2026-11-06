@@ -14,7 +14,7 @@ export const seedServices:Service[] = [
  {id:'diamante-premium',name:'Bronze Diamante Premium',price:85,duration:180,category:'natural',active:true,desc:'Ativador diamante premium e banho de lua clareador.'},
  {id:'solazul',name:'Bronze Sol Azul',price:120,duration:45,category:'cabine',active:true,desc:'Ativador, intensificador, fixador, acelerador e banho de lua.'},
  {id:'solazul-turbo',name:'Bronze Sol Azul Turbo',price:130,duration:45,category:'cabine',active:true,desc:'3 ativadores, intensificador, fixador, acelerador e banho de lua.'},
- {id:'duplo',name:'Bronze Duplo',price:145,duration:120,category:'cabine',active:true,desc:'Bronze artificial turbo + bronze natural no sol.'},
+ {id:'duplo',name:'Bronze Duplo',price:145,duration:120,category:'cabine',active:true,desc:'Bronze artificial turbo + bronze natural no sol. Agendamento somente pela manhã.'},
  {id:'clareamento-corporal',name:'Clareamento Corporal',price:40,duration:30,category:'clareamento',active:true,desc:'Clareamento de 4 áreas do corpo e rosto.'},
  {id:'banho-lua-clareador',name:'Banho de Lua Clareador',price:75,duration:45,category:'clareamento',active:true,desc:'Banho de lua com ação clareadora.'},
 ];
@@ -26,6 +26,7 @@ export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
 export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:['08:00','09:00','10:00','11:00','14:30','15:30','16:30','17:30','18:30','19:30','20:30'], clareamento:[...times], cabineSaturday:['08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00'], cabineSunday:['08:00','09:00','10:00','11:00'], openDays:[0,2,3,4,5,6] };
 export function isOpenDay(hours:BookingHours, day:number) { return (hours.openDays || [0,2,3,4,5,6]).includes(day); }
 export function hoursForDay(hours:BookingHours, category:Category, day:number) { return category==='cabine' && day===6 ? hours.cabineSaturday || defaultBookingHours.cabineSaturday! : category==='cabine' && day===0 ? hours.cabineSunday || defaultBookingHours.cabineSunday! : hours[category]; }
+export function hoursForService(hours:BookingHours, category:Category, day:number, serviceId:string) { return hoursForDay(hours,category,day).filter(time=>serviceId!=='duplo'||Number(time.slice(0,2))<12); }
 export const money = (n:number) => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export function todayISO() { return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Fortaleza',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
 export const dateLabel = (s:string) => s.split('-').reverse().join('/');
@@ -59,6 +60,7 @@ export function validateBooking(a:Appointment,services:Service[],allowPast=true,
  } else {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) throw new Error('Horário inválido. Use o formato HH:MM.');
   const start=minutes(a.time);
+  if (service.id==='duplo' && start>=720) throw new Error('Bronze Duplo só pode ser agendado pela manhã.');
   if (start%5!==0) throw new Error('Use intervalos de 5 minutos.');
   if (!(start>=480&&start<=1230)) throw new Error('Horário fora do funcionamento. Escolha entre 08h e 20h30.');
   if (minutes(a.time)+service.duration>24*60) throw new Error('Atendimento ultrapassa o horário de fechamento (24h).');

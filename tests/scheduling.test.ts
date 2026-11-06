@@ -57,3 +57,9 @@ test('cabine oferece manhã de terça a domingo mesmo com bloqueio da tarde', ()
  }
  assert.equal(conflicts([],block,{...appointment,time:'15:00',duration:45}),true);
 });
+
+test('Bronze Duplo rejeita tarde e noite sem restringir outros serviços',()=>{
+ assert.doesNotThrow(()=>validateBooking({...appointment,time:'11:00'},seedServices));
+ for(const time of ['12:00','15:00','18:30']) assert.throws(()=>validateBooking({...appointment,time},seedServices),/manhã/);
+ assert.doesNotThrow(()=>validateBooking({...appointment,serviceId:'solazul',time:'18:30'},seedServices));
+});

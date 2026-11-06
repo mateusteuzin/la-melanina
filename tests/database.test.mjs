@@ -145,3 +145,18 @@ test('migração restaura manhãs da cabine e preserva bloqueios da tarde',async
  for (const time of ['08:00','09:00','10:00','11:00']) assert.ok(!times.includes(time));
  assert.ok(times.includes('15:30'));
 });
+
+test('Bronze Duplo só aceita manhã na reserva e remarcação',async()=>{
+ await role('postgres');
+ await db.exec(migration('007_duplo_morning_only.sql'));
+ const future=(await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+80,current_date+86,interval '1 day') d where extract(dow from d)=2 limit 1")).rows[0].d;
+ await role('anon');
+ const booking={...input('09:00'),date:future,phone:'88922223333'};
+ const created=(await query('select public.create_booking($1::jsonb,false) id',[JSON.stringify(booking)])).rows[0].id;
+ await assert.rejects(query('select public.create_booking($1::jsonb,false)',[JSON.stringify({...booking,time:'18:30'})]),/manhã/);
+ const times=(await query('select public.unavailable_times($1,$2) times',[future,'duplo'])).rows[0].times;
+ assert.ok(times.includes('18:30'));assert.ok(!times.includes('11:00'));
+ await role('authenticated',admin);
+ await assert.rejects(query('select public.update_booking($1,$2::jsonb)',[created,JSON.stringify({time:'18:30'})]),/manhã/);
+ await assert.rejects(query('select public.create_booking($1::jsonb,true)',[JSON.stringify({...booking,time:'18:30'})]),/manhã/);
+});

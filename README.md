@@ -29,3 +29,5 @@ A importação dos agendamentos antigos da planilha ainda está pendente. Até a
 A configuração de produção incluída contém apenas a URL e a chave pública do Supabase; as permissões são protegidas no banco. Variáveis cadastradas na Vercel têm prioridade.
 
 Para liberar as manhãs da cabine mantendo os horários existentes, aplique `supabase/006_restore_cabin_mornings.sql` após `005_flexible_weekly_hours.sql` no SQL Editor do Supabase. Isso adiciona 08h, 09h, 10h e 11h de terça a sábado; domingo já oferece manhã. Os bloqueios existentes continuam valendo. O envio ao GitHub não aplica automaticamente esta atualização no banco.
+
+Aplique `supabase/007_duplo_morning_only.sql` após a migração 006 para restringir o Bronze Duplo a inícios antes de 12h na reserva pública, administrativa e remarcação. Reservas existentes não são alteradas automaticamente.
