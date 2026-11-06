@@ -629,3 +629,41 @@
 .adm-client-pagination>div{display:flex;align-items:center;gap:12px}
 .adm-client-pagination button:disabled{opacity:.45;cursor:default}
 @media(max-width:600px){.adm-client-pagination{flex-direction:column}.adm-client-pagination>div{gap:8px}}
+
+/* Daily agenda */
+.adm-agenda-workspace{display:grid;gap:20px;min-width:0}
+.adm-agenda-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.adm-agenda-toolbar h2{font-family:Georgia,serif;font-size:25px;margin:0 0 6px;color:#603930}
+.adm-agenda-toolbar p,.adm-availability-panel>p{font-size:12px;color:var(--adm-muted);line-height:1.6}
+.adm-day-navigation{display:flex;gap:8px;flex-wrap:wrap}
+.adm-agenda-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.adm-agenda-summary>div{padding:20px;background:#fff;border:1px solid var(--adm-border);border-radius:14px;display:grid;gap:10px}
+.adm-agenda-summary span{font-size:11px;color:var(--adm-muted)}
+.adm-agenda-summary strong{font-size:24px;color:#603930;font-weight:500}
+.adm-agenda-options{display:flex;justify-content:space-between;gap:14px;padding:12px 20px;border-bottom:1px solid var(--adm-border)}
+.adm-agenda-period>h3{margin:0;padding:18px 22px;background:#faf7f3;display:flex;gap:10px;align-items:center;font-size:14px;color:#72553f}
+.adm-agenda-period>h3 span{font:11px Arial;background:#ece1d5;border-radius:20px;padding:4px 8px}
+.adm-agenda-period .adm-empty{padding:20px}.adm-agenda-period .adm-empty>svg,.adm-agenda-period .adm-empty>.adm-button{display:none}
+.adm-row-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding-top:8px}
+.adm-row-actions .adm-button{font-size:10px;min-height:36px;padding:7px 10px}
+.adm-agenda-workspace .adm-table td:last-child{min-width:205px;max-width:260px}
+.adm-rule-warning{display:block;border-left:3px solid #b87a25;background:#fff6e9;padding:10px 12px;font-size:11px;color:#83541e;line-height:1.5}
+.adm-availability-panel{padding:22px}.adm-availability-panel h2{margin-top:0;font-size:18px}
+.adm-slots{display:grid;gap:14px;margin:12px 0}.adm-slots h4{margin:4px 0 10px;font-size:12px;color:#795a45}
+.adm-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.adm-slot{border:1px solid #dbcbbd;background:#fff;border-radius:10px;min-height:44px;color:#79563e;cursor:pointer;font-size:13px}
+.adm-slot.selected{background:#79563e;color:white;border-color:#79563e;box-shadow:0 0 0 2px #e8d7c5}
+.adm-slot:hover{border-color:#79563e}.adm-slot:focus-visible,.adm-button:focus-visible{outline:3px solid #c69b65;outline-offset:3px}
+.adm-slot-error{background:#fff0ee;color:#9c352b;border-radius:10px;padding:12px;font-size:12px;line-height:1.6}
+@media(max-width:1100px){.adm-agenda-workspace .adm-table-wrap{display:none}.adm-agenda-workspace .adm-cards-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px}.adm-agenda-toolbar{align-items:flex-start;flex-direction:column}}
+@media(max-width:640px){
+ .adm-agenda-workspace{gap:14px}.adm-agenda-summary{grid-template-columns:1fr 1fr;gap:8px}.adm-agenda-summary>div{padding:14px}.adm-agenda-summary>div:last-child{grid-column:1/-1}.adm-agenda-summary strong{font-size:22px}
+ .adm-day-navigation{width:100%;display:grid;grid-template-columns:44px 1fr 1fr 44px}.adm-day-navigation button{padding:8px;min-height:44px;justify-content:center}
+ .adm-agenda-workspace .adm-cards-wrap{grid-template-columns:1fr;padding:10px}.adm-agenda-options{flex-direction:column;padding:14px}
+ .adm-row-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.adm-row-actions .adm-button,.adm-row-actions .adm-text-button{min-height:44px;justify-content:center;font-size:12px}
+ .adm-app-card-client>div{min-width:0}.adm-app-card-client strong{overflow-wrap:anywhere}.adm-app-card-amount{flex-wrap:wrap;gap:8px}.adm-pay-tag{white-space:normal!important;line-height:1.5}
+ .adm-availability-panel{padding:16px}.adm-slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .adm-modal{max-height:94dvh;width:100%;border-radius:20px 20px 0 0;margin:0}.adm-overlay{align-items:flex-end;padding:0}.adm-modal>header{position:sticky;top:0;z-index:3;background:#fff}
+ .adm-modal input,.adm-modal select,.adm-modal textarea,.adm-agenda-workspace input,.adm-agenda-workspace select{font-size:16px;min-height:44px;max-width:100%;box-sizing:border-box}
+ .adm-modal .adm-form-grid{grid-template-columns:1fr}.adm-modal .adm-actions{position:sticky;bottom:0;background:#fff;padding:12px 0;z-index:2}.adm-modal .adm-actions>.adm-button{width:100%;min-height:48px}
+}

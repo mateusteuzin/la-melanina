@@ -160,3 +160,27 @@ test('Bronze Duplo só aceita manhã na reserva e remarcação',async()=>{
  await assert.rejects(query('select public.update_booking($1,$2::jsonb)',[created,JSON.stringify({time:'18:30'})]),/manhã/);
  await assert.rejects(query('select public.create_booking($1::jsonb,true)',[JSON.stringify({...booking,time:'18:30'})]),/manhã/);
 });
+
+test('agenda administrativa consulta vagas, exclui a própria reserva e protege acesso',async()=>{
+ await role('postgres');await db.exec(migration('008_admin_availability.sql'));
+ const date=(await query("select to_char(d,'YYYY-MM-DD') d from generate_series(current_date+100,current_date+106,interval '1 day') d where extract(dow from d)=2 limit 1")).rows[0].d;
+ await role('anon');await assert.rejects(query('select public.admin_available_times($1,$2,null)',[date,'duplo']),/permission denied/);
+ await role('authenticated','00000000-0000-4000-8000-000000000002');await assert.rejects(query('select public.admin_available_times($1,$2,null)',[date,'duplo']),/administrativo/);
+ await role('authenticated',admin);
+ const booking={...input('09:00'),date};
+ const id=(await query('select public.create_booking($1::jsonb,true) id',[JSON.stringify(booking)])).rows[0].id;
+ const available=async(service='duplo',exclude=null)=>(await query('select public.admin_available_times($1,$2,$3) times',[date,service,exclude])).rows[0].times;
+ assert.ok(!(await available()).includes('09:00'));
+ assert.ok((await available('duplo',id)).includes('09:00'));
+ assert.ok(!(await available('duplo',id)).includes('18:30'));
+ assert.ok(!(await available('solazul')).includes('10:00'));
+ await query("select public.add_block($1,'15:30','Pausa')",[date]);
+ assert.ok(!(await available('solazul')).includes('15:30'));
+ assert.ok((await available('solazul')).includes('18:30'));
+ await query('select public.update_booking($1,$2::jsonb)',[id,JSON.stringify({time:'11:00'})]);
+ assert.ok((await available()).includes('09:00'));
+ await role('postgres');
+ await query("update public.appointments set data=jsonb_set(data,'{time}','\"18:30\"'::jsonb) where id=$1",[id]);
+ await role('authenticated',admin);
+ await query('select public.update_booking($1,$2::jsonb)',[id,JSON.stringify({status:'cancelado'})]);
+});

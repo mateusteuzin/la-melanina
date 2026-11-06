@@ -23,3 +23,5 @@ export async function saveBookingHours(hours:BookingHours){const r=await databas
 export async function isAdmin(){if(!supabase)return false;const {data}=await supabase.auth.getSession();if(!data.session)return false;const r=await supabase.from('admin_members').select('user_id').eq('user_id',data.session.user.id);check(r.error);return !!r.data?.length;}
 export async function login(email:string,password:string){const db=database();const r=await db.auth.signInWithPassword({email,password});check(r.error);if(!await isAdmin()){await db.auth.signOut();throw new Error('Sua conta não tem acesso administrativo.');}}
 export async function logout(){if(supabase)await supabase.auth.signOut();}
+
+export async function adminAvailableTimes(date:string,serviceId:string,excludeId?:string):Promise<string[]>{const r=await database().rpc("admin_available_times",{p_date:date,p_service:serviceId,p_exclude:excludeId || null});check(r.error);return r.data || [];}

@@ -31,3 +31,5 @@ A configuração de produção incluída contém apenas a URL e a chave pública
 Para liberar as manhãs da cabine mantendo os horários existentes, aplique `supabase/006_restore_cabin_mornings.sql` após `005_flexible_weekly_hours.sql` no SQL Editor do Supabase. Isso adiciona 08h, 09h, 10h e 11h de terça a sábado; domingo já oferece manhã. Os bloqueios existentes continuam valendo. O envio ao GitHub não aplica automaticamente esta atualização no banco.
 
 Aplique `supabase/007_duplo_morning_only.sql` após a migração 006 para restringir o Bronze Duplo a inícios antes de 12h na reserva pública, administrativa e remarcação. Reservas existentes não são alteradas automaticamente.
+
+Para a agenda administrativa com consulta de vagas e remarcação, aplique `supabase/008_admin_availability.sql` após 007. A consulta é exclusiva para administradores, considera duração, bloqueios e a própria reserva na remarcação. A migração permite cancelar reservas antigas fora das regras atuais.

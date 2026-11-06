@@ -64,6 +64,7 @@ import {
 } from './store';
 import type { Data } from './store';
 import './admin.css';
+import { Availability } from './Availability';
 
 type Section = 'overview' | 'agenda' | 'clients' | 'finance' | 'services' | 'settings';
 const navigation = [
@@ -175,8 +176,14 @@ export function Admin() {
   const [clientPage, setClientPage] = useState(1);
   useEffect(() => setClientPage(1), [search]);
   const [status, setStatus] = useState('todos');
-  const [onlyDay, setOnlyDay] = useState(false);
+  const [onlyDay, setOnlyDay] = useState(true);
   const [detail, setDetail] = useState<Appointment | null>(null);
+  const [detailReady, setDetailReady] = useState(false);
+  const [balanceOnly, setBalanceOnly] = useState(false);
+  const [availabilityService, setAvailabilityService] = useState('solazul');
+  const [availabilityTime, setAvailabilityTime] = useState('');
+  const [availabilityReady,setAvailabilityReady]=useState(false);
+  const [availabilityRevision,setAvailabilityRevision]=useState(0);
   const [newBooking, setNewBooking] = useState(false);
   const [editService, setEditService] = useState<Service | null>(null);
   const [editAddon, setEditAddon] = useState<Addon | null>(null);
@@ -195,6 +202,7 @@ export function Admin() {
   const refresh = async () => {
     try {
       setData(await loadAdmin());
+      setAvailabilityRevision(v=>v+1);
       setError('');
     } catch (e) {
       setError((e as Error).message);
@@ -275,6 +283,7 @@ export function Admin() {
     .filter(
       (a) =>
         (!onlyDay || a.date === day) &&
+        (!balanceOnly || (active(a.status) && paid(a)<a.amount)) &&
         (status === 'todos' || a.status === status) &&
         `${a.name} ${a.phone} ${a.serviceName}`.toLowerCase().includes(search.toLowerCase())
     )
@@ -350,8 +359,27 @@ export function Admin() {
     setSection(id);
     setMobileMenu(false);
     setSearch('');
-    setOnlyDay(false);
+    setOnlyDay(id === 'agenda');
+    setBalanceOnly(false);
+    if (id === 'agenda') { setDay(todayISO()); setMonth(todayISO().slice(0,7)); }
     setStatus('todos');
+  }
+
+  function shiftDay(delta:number) {
+    const date=new Date(day+'T12:00:00'); date.setDate(date.getDate()+delta);
+    const next=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    setDay(next);setMonth(next.slice(0,7));setOnlyDay(true);
+  }
+
+  function quickActions(a:Appointment) {
+    return <div className="adm-row-actions">
+      {a.status==='pendente' && <button disabled={busy} className="adm-button" onClick={()=>run(()=>updateBooking({...a,status:'confirmado'}),'Agendamento confirmado.')}>Confirmar</button>}
+      {active(a.status)&&paid(a)<a.amount&&<button className="adm-button" onClick={()=>{openDetail(a);setTimeout(()=>document.getElementById('admin-payment')?.scrollIntoView({behavior:'smooth'}),100);}}>Receber</button>}
+      <button className="adm-button" onClick={()=>openDetail(a)}>Remarcar / editar</button>
+      {a.phone && <a className="adm-button" href={`https://wa.me/${a.phone.startsWith('55')?a.phone:'55'+a.phone}`} target="_blank" rel="noreferrer">WhatsApp <ExternalLink size={13}/></a>}
+      {['pendente','confirmado'].includes(a.status)&&<button disabled={busy} className="adm-button" onClick={()=>setConfirm({appointment:a,status:'concluido'})}>Concluir</button>}
+      {active(a.status)&&<button disabled={busy} className="adm-text-button" onClick={()=>setConfirm({appointment:a,status:'cancelado'})}>Cancelar</button>}
+    </div>;
   }
 
   function appointmentTable(list: Appointment[]) {
@@ -415,10 +443,12 @@ export function Admin() {
                   <td>
                     <strong>{money(a.amount)}</strong>
                     <small>
-                      {paid(a) >= a.amount ? 'Pago' : paid(a) > 0 ? `Sinal: ${money(paid(a))}` : 'A receber'}
+                      {paid(a) >= a.amount ? 'Pago integralmente' : `Pago ${money(paid(a))} · Falta ${money(Math.max(0,a.amount-paid(a)))}`}
                     </small>
                   </td>
                   <td>
+                    {a.serviceId==='duplo' && Number(a.time.slice(0,2))>=12 && active(a.status) && <span className="adm-rule-warning">Remarcar: Duplo somente de manhã</span>}
+                    {quickActions(a)}
                     <button
                       className="adm-icon"
                       onClick={() => openDetail(a)}
@@ -473,7 +503,7 @@ export function Admin() {
                       paid(a) >= a.amount ? 'pago' : paid(a) > 0 ? 'sinal' : 'pendente'
                     }`}
                   >
-                    {paid(a) >= a.amount ? 'Pago' : paid(a) > 0 ? `Sinal: ${money(paid(a))}` : 'A receber'}
+                    {paid(a) >= a.amount ? 'Pago integralmente' : `Pago ${money(paid(a))} · Falta ${money(Math.max(0,a.amount-paid(a)))}`}
                   </span>
                 </div>
                 <button
@@ -484,6 +514,8 @@ export function Admin() {
                   Detalhes <ArrowUpRight size={15} />
                 </button>
               </div>
+              {a.serviceId==='duplo' && Number(a.time.slice(0,2))>=12 && active(a.status) && <p className="adm-rule-warning">Remarcar: Bronze Duplo somente pela manhã.</p>}
+              {quickActions(a)}
             </article>
           ))}
         </div>
@@ -925,7 +957,17 @@ export function Admin() {
               )}
 
               {section === 'agenda' && (
-                <section className="adm-card">
+                <div className="adm-agenda-workspace">
+                  <div className="adm-agenda-toolbar">
+                    <div><h2>{onlyDay ? (day===todayISO()?'Agenda de hoje':dateLabel(day)) : 'Agenda do mês'}</h2><p>Atendimentos, recebimentos e vagas em um só lugar.</p></div>
+                    <div className="adm-day-navigation"><button className="adm-button" aria-label="Dia anterior" onClick={()=>shiftDay(-1)}><ChevronLeft size={18}/></button><button className="adm-button" onClick={()=>{setDay(todayISO());setMonth(todayISO().slice(0,7));setOnlyDay(true);}}>Hoje</button><button className="adm-button" onClick={()=>{const d=new Date(todayISO()+'T12:00:00');d.setDate(d.getDate()+1);const next=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;setDay(next);setMonth(next.slice(0,7));setOnlyDay(true);}}>Amanhã</button><button className="adm-button" aria-label="Próximo dia" onClick={()=>shiftDay(1)}><ChevronRight size={18}/></button></div>
+                  </div>
+                  <div className="adm-agenda-summary">
+                    <div><span>Atendimentos no dia</span><strong>{dayRows.length}</strong></div>
+                    <div><span>Recebido no dia selecionado</span><strong>{money(rows.reduce((total,a)=>total+a.payments.filter(p=>p.date===day).reduce((v,p)=>v+p.amount,0),0))}</strong></div>
+                    <div><span>Saldo dos atendimentos do dia</span><strong>{money(dayRows.reduce((v,a)=>v+Math.max(0,a.amount-paid(a)),0))}</strong></div>
+                  </div>
+                  <section className="adm-card">
                   <div className="adm-filters">
                     <label className="adm-search">
                       <Search size={17} />
@@ -971,11 +1013,14 @@ export function Admin() {
                       <Download size={16} /> Exportar
                     </button>
                   </div>
-                  {appointmentTable(filtered)}
+                  <div className="adm-agenda-options"><label className="adm-check"><input type="checkbox" checked={balanceOnly} onChange={e=>setBalanceOnly(e.target.checked)}/>Somente saldo pendente</label><button className="adm-text-button" disabled={busy} onClick={refresh}><RefreshCw size={15}/> Atualizar agenda</button></div>
+                  {onlyDay ? <>{[['Manhã',filtered.filter(a=>a.category!=='natural'&&Number(a.time.slice(0,2))<12)],['Tarde e noite',filtered.filter(a=>a.category!=='natural'&&Number(a.time.slice(0,2))>=12)],['Bronze natural',filtered.filter(a=>a.category==='natural')]].map(([label,list])=><section className="adm-agenda-period" key={label as string}><h3>{label as string}<span>{(list as Appointment[]).length}</span></h3>{appointmentTable(list as Appointment[])}</section>)}</> : appointmentTable(filtered)}
                   <div className="adm-table-footer">
                     {filtered.length} agendamento(s) encontrado(s)
                   </div>
                 </section>
+                {data && <section className="adm-card adm-availability-panel"><h2>Consultar vagas livres</h2><p>Escolha o serviço e toque em uma vaga para criar um agendamento.</p><div className="adm-form-grid"><Field label="Serviço"><select value={availabilityService} onChange={e=>{setAvailabilityService(e.target.value);setAvailabilityTime('');}}>{data.services.filter(s=>s.active).map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></Field><Field label="Data"><input type="date" value={day} onChange={e=>{if(e.target.value){setDay(e.target.value);setMonth(e.target.value.slice(0,7));setAvailabilityTime('');}}}/></Field></div><Availability date={day} serviceId={availabilityService} value={availabilityTime} onChange={setAvailabilityTime} revision={availabilityRevision} onReady={setAvailabilityReady}/><button className="adm-button primary" disabled={!availabilityTime || !availabilityReady} onClick={()=>setNewBooking(true)}>Agendar nesta vaga</button>{data.blocks.filter(b=>b.date===day).map(b=><p className="adm-rule-warning" key={b.id}>Bloqueado: {blockLabel(b.time)} · {b.reason}</p>)}</section>}
+                </div>
               )}
 
               {section === 'clients' && (
@@ -1378,6 +1423,10 @@ export function Admin() {
 
       {newBooking && data && (
         <NewBooking
+          initialDate={section==='agenda'?day:todayISO()}
+          initialService={availabilityTime?availabilityService:undefined}
+          initialTime={availabilityTime}
+          error={error}
           hours={data.bookingHours}
           services={data.services}
           addons={data.addons}
@@ -1394,6 +1443,7 @@ export function Admin() {
       {detail && (
         <Modal title="Detalhes do agendamento" close={() => setDetail(null)}>
           <div className="adm-detail-modal-content">
+            {error && <p className="adm-slot-error" role="alert">{error}</p>}
             <div className="adm-detail-hero">
               <span className="adm-avatar large">{initial(detail.name)}</span>
               <div className="adm-detail-hero-info">
@@ -1473,15 +1523,10 @@ export function Admin() {
                   />
                 </Field>
                 <Field label="Horário">
-                  <input
-                    type="time"
-                    required
-                    step={300}
-                    value={detail.time}
-                    onInput={(e) => setDetail({ ...detail, time: e.currentTarget.value })}
-                  />
+                  <span>{detail.time || 'Selecione uma vaga abaixo'}</span>
                 </Field>
               </div>
+              <Availability date={detail.date} serviceId={detail.serviceId} excludeId={detail.id} value={detail.time} onChange={time=>setDetail({...detail,time})} onReady={setDetailReady}/>
               <Field label="Situação">
                 <select
                   value={detail.status}
@@ -1502,14 +1547,14 @@ export function Admin() {
                 />
               </Field>
               <div className="adm-actions">
-                <button disabled={busy} className="adm-button primary">
+                <button disabled={busy || (active(detail.status) && !detailReady)} className="adm-button primary">
                   Salvar alterações
                 </button>
               </div>
             </form>
 
             {/* Seção Financeira e Pagamentos */}
-            <section className="adm-payment-section">
+            <section className="adm-payment-section" id="admin-payment">
               <h3>Pagamento</h3>
               <div className="adm-payment-summary">
                 <span>
@@ -1880,7 +1925,7 @@ function BookingHoursEditor({
   );
 }
 
-function NewBooking({
+function NewBooking({ initialDate, initialService, initialTime, error,
   hours,
   services,
   addons,
@@ -1888,6 +1933,7 @@ function NewBooking({
   close,
   save,
 }: {
+  initialDate:string; initialService?:string; initialTime?:string; error:string;
   hours: BookingHours;
   services: Service[];
   addons: Addon[];
@@ -1898,20 +1944,20 @@ function NewBooking({
   const [input, setInput] = useState({
     name: '',
     phone: '',
-    serviceId: services.find((s) => s.active)?.id || '',
-    date: todayISO(),
-    time: naturalTimes[0],
+    serviceId: initialService || services.find((s) => s.active)?.id || '',
+    date: initialDate,
+    time: initialTime || '',
     notes: '',
     addons: [] as string[],
   });
   const service = services.find((s) => s.id === input.serviceId);
-  const availableHours = service ? hoursForService(hours, service.category, new Date(input.date+'T12:00:00').getDay(), service.id) : [];
-  useEffect(() => { if (!availableHours.includes(input.time)) setInput(previous => ({...previous,time:availableHours[0] || ''})); }, [input.date, input.serviceId, hours]);
+  const [slotReady,setSlotReady]=useState(false);
   const total =
     (service?.price || 0) +
     addons.filter((a) => input.addons.includes(a.id)).reduce((v, a) => v + a.price, 0);
   return (
     <Modal title="Novo agendamento" close={close}>
+      {error && <p className="adm-slot-error" role="alert">{error}</p>}
       <form
         className="adm-form"
         onSubmit={(e) => {
@@ -1971,17 +2017,8 @@ function NewBooking({
               onInput={(e) => setInput({ ...input, date: e.currentTarget.value })}
             />
           </Field>
-          <Field label={service?.category === 'natural' ? 'Vaga' : 'Horário'}>
-            <select
-              value={input.time}
-              onChange={(e) => setInput({ ...input, time: e.target.value })}
-            >
-              {availableHours.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </Field>
         </div>
+        <Availability date={input.date} serviceId={input.serviceId} value={input.time} onChange={time=>setInput({...input,time})} onReady={setSlotReady}/>
         <Field label="Observações">
           <textarea
             maxLength={1000}
@@ -2017,7 +2054,7 @@ function NewBooking({
         <p className="adm-help">
           A disponibilidade é validada ao salvar. Uma reserva nova entra como pendente.
         </p>
-        <button disabled={busy || !service} className="adm-button primary full">
+        <button disabled={busy || !service || !slotReady} className="adm-button primary full">
           {busy ? 'Salvando…' : 'Criar agendamento'}
           <Check size={17} />
         </button>
