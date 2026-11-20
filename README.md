@@ -33,3 +33,9 @@ Para liberar as manhãs da cabine mantendo os horários existentes, aplique `sup
 Aplique `supabase/007_duplo_morning_only.sql` após a migração 006 para restringir o Bronze Duplo a inícios antes de 12h na reserva pública, administrativa e remarcação. Reservas existentes não são alteradas automaticamente.
 
 Para a agenda administrativa com consulta de vagas e remarcação, aplique `supabase/008_admin_availability.sql` após 007. A consulta é exclusiva para administradores, considera duração, bloqueios e a própria reserva na remarcação. A migração permite cancelar reservas antigas fora das regras atuais.
+
+## Sinal via Pix
+
+Configure `VITE_BOOKING_PIX_CODE` com o Pix Copia e Cola reutilizável de R$ 15,00 do estúdio. Para exibir o QR correspondente, coloque a imagem em `public/pix-sinal.png` e configure `VITE_BOOKING_PIX_QR_URL=/pix-sinal.png`. Configure as mesmas variáveis na Vercel e gere um novo build. Sem o código, o formulário orienta a cliente a falar com o estúdio.
+
+Todos os serviços usam o mesmo sinal. Após declarar o pagamento, a cliente envia a solicitação e anexa o comprovante no WhatsApp. No painel, confira o Pix recebido, registre R$ 15,00 em **Receber** e confirme o horário. O fluxo manual usa o status pendente existente e dispensa migração no Supabase.
