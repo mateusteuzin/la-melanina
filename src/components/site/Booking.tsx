@@ -187,6 +187,10 @@ const services: Service[] = [
 const DAYS    = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MONTHS  = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const WEEKDAYS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const PIX_CODE = import.meta.env.VITE_BOOKING_PIX_CODE?.trim() || "";
+const PIX_QR_URL = import.meta.env.VITE_BOOKING_PIX_QR_URL?.trim() || "";
+const DEPOSIT = "R$ 15,00";
+
 const WHATSAPP_NUMBER = "558896241621";
 
 function formatDateBR(date: Date) {
@@ -234,6 +238,8 @@ export function Booking() {
   const [catalog, setCatalog] = useState<{services:CatalogService[];addons:CatalogAddon[];bookingHours:BookingHours}|null>(null);
   const [bookingError, setBookingError] = useState('');
   const [availabilityReady, setAvailabilityReady] = useState(false);
+  const [depositSent, setDepositSent] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedWhatsappHref, setConfirmedWhatsappHref] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -357,6 +363,20 @@ export function Booking() {
   }, [selectedDateFormatted, serviceId, catalog]);
   useEffect(()=>{if(catalogServices.length&&!catalogServices.some(s=>s.id===serviceId)){setServiceId(catalogServices[0].id);setTime(null);}},[catalog]);
 
+  useEffect(() => {
+    setDepositSent(false);
+    setCopyStatus("");
+  }, [serviceId, selectedDateFormatted, time]);
+
+  const copyPix = async () => {
+    try {
+      await navigator.clipboard.writeText(PIX_CODE);
+      setCopyStatus("Código Pix copiado.");
+    } catch {
+      setCopyStatus("Selecione o código Pix e copie manualmente.");
+    }
+  };
+
   const buildWhatsappHref = () => {
     const displayTime = time;
     if (!displayTime || !selected || !summary || !nome.trim()) return "";
@@ -364,12 +384,12 @@ export function Booking() {
     const addOnsText = selectedAddOns.length
       ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
       : "";
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPoderiam confirmar a disponibilidade?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix e vou enviar o comprovante nesta conversa. Podem conferir e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
   const handleBookingClick = async () => {
-    if (submitRef.current) return;
+    if (submitRef.current || !PIX_CODE || !depositSent || agendamentoConfirmado) return;
     submitRef.current = true;
     const displayTime = time;
     if (!displayTime || !selected || !summary) {
@@ -708,13 +728,13 @@ export function Booking() {
 
           {/* Confirmação */}
           <div className="rounded-3xl border border-border bg-accent/30 p-4 sm:p-6 shadow-soft">
-            <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">3. Confirme seu agendamento</h3>
+            <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">3. Pague o sinal e solicite o horário</h3>
             <div className="mx-auto flex size-12 sm:size-14 animate-float items-center justify-center rounded-full bg-wine text-wine-foreground shadow-glow">
               <Send className="size-5 sm:size-6" />
             </div>
             <p className="mt-3 text-center font-semibold text-foreground text-sm sm:text-base">Pronto para agendar!</p>
             <p className="mt-1 text-center text-xs sm:text-sm text-muted-foreground">
-              Você será direcionada ao WhatsApp com os detalhes do seu agendamento.
+              O estúdio confirma seu horário após conferir o comprovante.
             </p>
 
             {/* Resumo */}
@@ -727,6 +747,7 @@ export function Booking() {
               <Row icon={<Clock className="size-4" />} label={isNatural?"Vaga":"Horário"} value={selectedTimeDisplay} />
               <div className="border-t border-border pt-2 mt-2">
                 <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
+                <Row icon={<CreditCard className="size-4" />} label="Sinal via Pix" value={DEPOSIT} />
               </div>
               {isCabine && (
                 <div className="border-t border-border pt-2 mt-2">
@@ -761,10 +782,32 @@ export function Booking() {
               />
             </div>
 
+            {!agendamentoConfirmado && (
+              <div className="mt-4 space-y-3 rounded-2xl border border-border bg-card p-4">
+                <h4 className="font-semibold text-wine">Sinal via Pix de {DEPOSIT}</h4>
+                {PIX_CODE ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">Confira o valor e o nome de Mayara Santos da Silva no aplicativo do seu banco antes de pagar.</p>
+                    {PIX_QR_URL && <img src={PIX_QR_URL} alt="QR Code Pix do sinal" className="mx-auto w-48 max-w-full rounded-xl bg-white p-2" />}
+                    <label htmlFor="booking-pix-code" className="block text-sm font-medium">Pix Copia e Cola</label>
+                    <Input id="booking-pix-code" value={PIX_CODE} readOnly onFocus={(event) => event.currentTarget.select()} />
+                    <button type="button" onClick={copyPix} className="rounded-full border border-wine px-4 py-2 text-sm font-semibold text-wine">Copiar código Pix</button>
+                    <p role="status" className="text-sm text-muted-foreground">{copyStatus}</p>
+                    <label className="flex items-center gap-3 text-sm font-medium">
+                      <input type="checkbox" checked={depositSent} disabled={submitting} onChange={(event) => setDepositSent(event.target.checked)} className="size-4 accent-wine" />
+                      Já paguei o sinal de {DEPOSIT}.
+                    </label>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">O Pix está indisponível no site. <a className="underline" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Fale com o estúdio pelo WhatsApp.</a></p>
+                )}
+              </div>
+            )}
+
             {/* Botão WhatsApp */}
-            {(() => {
+            {!agendamentoConfirmado && (() => {
               const href = buildWhatsappHref();
-              const canBook = !!((time && nome.trim().length>=2 && telefone.replace(/\D/g,'').length>=10 && href && availabilityReady && catalogServices.length && !submitting));
+              const canBook = !!((PIX_CODE && depositSent && time && nome.trim().length>=2 && telefone.replace(/\D/g,'').length>=10 && href && availabilityReady && catalogServices.length && !submitting));
 
 
               return canBook ? (
@@ -773,18 +816,18 @@ export function Booking() {
                   onClick={handleBookingClick}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-wine px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant transition-all hover:bg-wine/90"
                 >
-                  <WhatsappIcon className="size-5" /> CONFIRMAR AGENDAMENTO
+                  <WhatsappIcon className="size-5" /> ENVIAR SOLICITAÇÃO
                 </button>
               ) : (
                 <span className="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-wine/50 px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant opacity-60">
-                  <WhatsappIcon className="size-5" /> {submitting?'SALVANDO…':'CONFIRMAR AGENDAMENTO'}
+                  <WhatsappIcon className="size-5" /> {submitting?'SALVANDO…':'ENVIAR SOLICITAÇÃO'}
                 </span>
               );
             })()}
             {bookingError&&<p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{bookingError}</p>}
             {demoMode&&<p className="mt-2 text-xs text-amber-700">Demonstração local: reservas salvas somente neste navegador.</p>}
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Ao clicar, você será redirecionada para o WhatsApp para finalizar seu agendamento.
+              Após enviar a solicitação, anexe o comprovante na conversa com o estúdio.
             </p>
 
             {/* Confirmação de Agendamento */}
@@ -793,8 +836,8 @@ export function Booking() {
                 <div className="flex items-start gap-3">
                   <CheckCircle className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Agendamento recebido! ✨</p>
-                    <p className="text-xs text-green-800 dark:text-green-200 mt-1">Sua solicitação foi salva na agenda. Se o WhatsApp não abriu, <a className="underline" href={confirmedWhatsappHref} target="_blank" rel="noreferrer">clique aqui para conversar com o estúdio</a>.</p>
+                    <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Solicitação recebida. Aguardando conferência do sinal.</p>
+                    <p className="text-xs text-green-800 dark:text-green-200 mt-1"><a className="underline" href={confirmedWhatsappHref} target="_blank" rel="noreferrer">Abra o WhatsApp e envie o comprovante</a> para o estúdio confirmar seu horário.</p>
 
                   </div>
                 </div>
