@@ -384,7 +384,7 @@ export function Booking() {
     const addOnsText = selectedAddOns.length
       ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
       : "";
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix e vou enviar o comprovante nesta conversa. Podem conferir e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix. Podem conferir o comprovante que vou anexar e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -816,19 +816,21 @@ export function Booking() {
                   onClick={handleBookingClick}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-wine px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant transition-all hover:bg-wine/90"
                 >
-                  <WhatsappIcon className="size-5" /> ENVIAR SOLICITAÇÃO
+                  <WhatsappIcon className="size-5" /> Salvar solicitação e enviar comprovante
                 </button>
               ) : (
                 <span className="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-wine/50 px-6 py-3 text-sm font-semibold text-wine-foreground shadow-elegant opacity-60">
-                  <WhatsappIcon className="size-5" /> {submitting?'SALVANDO…':'ENVIAR SOLICITAÇÃO'}
+                  <WhatsappIcon className="size-5" /> {submitting?'SALVANDO…':'Salvar solicitação e enviar comprovante'}
                 </span>
               );
             })()}
             {bookingError&&<p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{bookingError}</p>}
             {demoMode&&<p className="mt-2 text-xs text-amber-700">Demonstração local: reservas salvas somente neste navegador.</p>}
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Após enviar a solicitação, anexe o comprovante na conversa com o estúdio.
-            </p>
+            {!agendamentoConfirmado && (
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                Ao abrir o WhatsApp, toque no clipe ou no +, selecione o comprovante do Pix e envie na mesma conversa.
+              </p>
+            )}
 
             {/* Confirmação de Agendamento */}
             {agendamentoConfirmado && (
@@ -837,7 +839,12 @@ export function Booking() {
                   <CheckCircle className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="font-semibold text-green-900 dark:text-green-100 text-sm">Solicitação recebida. Aguardando conferência do sinal.</p>
-                    <p className="text-xs text-green-800 dark:text-green-200 mt-1"><a className="underline" href={confirmedWhatsappHref} target="_blank" rel="noreferrer">Abra o WhatsApp e envie o comprovante</a> para o estúdio confirmar seu horário.</p>
+                    <p className="mt-1 text-sm text-green-800 dark:text-green-200">
+                      Anexe a foto ou o PDF do comprovante no WhatsApp e envie junto com os dados do agendamento.
+                    </p>
+                    <a className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm font-semibold text-wine-foreground" href={confirmedWhatsappHref} target="_blank" rel="noreferrer">
+                      <WhatsappIcon className="size-5" /> Abrir WhatsApp para enviar comprovante
+                    </a>
 
                   </div>
                 </div>
