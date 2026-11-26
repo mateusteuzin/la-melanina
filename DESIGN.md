@@ -16,7 +16,7 @@ Preservar o estúdio em vinho, marrom e superfícies claras. O painel prioriza a
 
 ## Layout e comportamento
 
-Enfeites natalinos adicionais: cordão de 18 lâmpadas estáticas (9 no celular), bolas vinho/douradas, estrela e presente Lucide. Faixa decorativa própria de 88px (80px no celular), sem sobrepor conteúdo ou capturar cliques. Lâmpadas 8×12px, bolas 28×32px, ícones 28px; cores herdadas de Natal e vinho #653c35. Sem animação adicional.
+Enfeites natalinos: faixa compacta de 64px, limitada a 1200px; no celular 52px com tres enfeites. Lampadas CSS 6x10px, bolas acetinadas 26x28px (22x24px no celular), estrela vetorial 28px (24px no celular). Materiais dourados #a77b52/#c6984f/#926c36 e vinho #945a4b/#653c35/#3f211d. Gradientes de material preservam nitidez sem imagens raster. Faixa de texto em grid ate 600px: 20px/minmax(0,1fr)/auto, corpo e botao 14px, toque 44px. Ate 360px o botao passa para a segunda linha. Sem novas animacoes.
 
 Financeiro vira uma coluna até 950px. Recebimentos em lista até 950px substituem a tabela. Valores a receber em lista com ação Receber. Até 700px os indicadores usam duas colunas e filtros/quebras não escondem conteúdo. Testar 320/390/768/1440/1920px e zoom 75/100/150%.
 
