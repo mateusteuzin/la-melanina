@@ -16,6 +16,8 @@ Preservar o estúdio em vinho, marrom e superfícies claras. O painel prioriza a
 
 ## Layout e comportamento
 
+Enfeites natalinos adicionais: cordão de 18 lâmpadas estáticas (9 no celular), bolas vinho/douradas, estrela e presente Lucide. Faixa decorativa própria de 88px (80px no celular), sem sobrepor conteúdo ou capturar cliques. Lâmpadas 8×12px, bolas 28×32px, ícones 28px; cores herdadas de Natal e vinho #653c35. Sem animação adicional.
+
 Financeiro vira uma coluna até 950px. Recebimentos em lista até 950px substituem a tabela. Valores a receber em lista com ação Receber. Até 700px os indicadores usam duas colunas e filtros/quebras não escondem conteúdo. Testar 320/390/768/1440/1920px e zoom 75/100/150%.
 
 Cadastro de serviços preserva o identificador na edição; categoria é escolhida na criação e fica bloqueada depois, seguindo o banco. Serviços podem ser pausados. Adicionais são criados/editados sem apagar registros antigos. Salvar usa a conexão e autorização atuais. Não recriar ou popular tabelas existentes.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Snowflake, TreePine } from "lucide-react";
+import { Snowflake, TreePine, Gift, Star } from "lucide-react";
 import "./holiday.css";
 
 // Seasonal decoration never participates in booking or admin data.
@@ -26,6 +26,18 @@ export function HolidaySeason() {
           {snow ? "Pausar neve" : "Ativar neve"}
         </button>
       </aside>
+      <div className="holiday-garland" aria-hidden="true">
+        <div className="holiday-lights">
+          {Array.from({ length: 18 }, (_, i) => <i key={i} />)}
+        </div>
+        <div className="holiday-ornaments">
+          <span className="holiday-bauble" />
+          <Star className="holiday-star" size={28} />
+          <span className="holiday-bauble gold" />
+          <Gift className="holiday-gift" size={28} />
+          <span className="holiday-bauble" />
+        </div>
+      </div>
       <div className={"holiday-snow" + (!snow || !visible ? " paused" : "")} aria-hidden="true">
         {Array.from({ length: 24 }, (_, i) => (
           <i
