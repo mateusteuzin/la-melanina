@@ -184,3 +184,72 @@ test('agenda administrativa consulta vagas, exclui a própria reserva e protege 
  await role('authenticated',admin);
  await query('select public.update_booking($1,$2::jsonb)',[id,JSON.stringify({status:'cancelado'})]);
 });
+
+test("novos serviços e adicionais respeitam autorização e preservam reservas históricas", async () => {
+  const service = {
+    id: "novo-bronze",
+    name: "Novo bronze",
+    price: 99,
+    duration: 45,
+    category: "cabine",
+    active: true,
+    desc: "Novo serviço",
+  };
+  const addon = { id: "novo-adicional", name: "Novo adicional", price: 12.5 };
+  await role("authenticated", "00000000-0000-4000-8000-000000000002");
+  await assert.rejects(
+    query("insert into public.services values($1,$2::jsonb)", [
+      service.id,
+      JSON.stringify(service),
+    ]),
+    /row-level security/,
+  );
+  await assert.rejects(
+    query("insert into public.addons values($1,$2::jsonb)", [addon.id, JSON.stringify(addon)]),
+    /row-level security/,
+  );
+  await role("authenticated", admin);
+  await db.exec("begin");
+  try {
+    await query("insert into public.services values($1,$2::jsonb)", [
+      service.id,
+      JSON.stringify(service),
+    ]);
+    await query("insert into public.addons values($1,$2::jsonb)", [
+      addon.id,
+      JSON.stringify(addon),
+    ]);
+    const booking = { ...input("09:00", service.id), addons: [addon.id] };
+    const created = (
+      await query("select public.create_booking($1::jsonb,true) id", [JSON.stringify(booking)])
+    ).rows[0].id;
+    const before = (await query("select data from public.appointments where id=$1", [created]))
+      .rows[0].data;
+    assert.equal(before.amount, 111.5);
+    await query("update public.services set data=$2::jsonb where id=$1", [
+      service.id,
+      JSON.stringify({
+        ...service,
+        name: "Nome atualizado",
+        price: 200,
+        duration: 60,
+        active: false,
+      }),
+    ]);
+    await query("update public.addons set data=$2::jsonb where id=$1", [
+      addon.id,
+      JSON.stringify({ ...addon, name: "Adicional atualizado", price: 25 }),
+    ]);
+    assert.deepEqual(
+      (await query("select data from public.appointments where id=$1", [created])).rows[0].data,
+      before,
+    );
+    await role("anon");
+    assert.equal(
+      (await query("select data from public.addons where id=$1", [addon.id])).rows[0].data.price,
+      25,
+    );
+  } finally {
+    await db.exec("rollback");
+  }
+});

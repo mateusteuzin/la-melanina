@@ -11,6 +11,7 @@ import { CtaBand } from "@/components/site/CtaBand";
 import { Footer } from "@/components/site/Footer";
 import { WhatsappFloat } from "@/components/site/WhatsappFloat";
 import { BookingPolicyModal } from "@/components/site/BookingPolicyModal";
+import { HolidaySeason } from "@/components/site/HolidaySeason";
 
 // Mantém o mesmo conteúdo visual, mas agora como componente React simples (SPA).
 export function Index() {
@@ -18,6 +19,7 @@ export function Index() {
     <div className="min-h-screen bg-background">
       <BookingPolicyModal />
       <Header />
+      <HolidaySeason />
       <main>
         <Hero />
         <Benefits />

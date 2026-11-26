@@ -1,0 +1,106 @@
+.holiday-banner {
+  --holiday-green: #234c3b;
+  --holiday-gold: #f0d6a0;
+  background: var(--holiday-green);
+  color: #fffaf3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.holiday-banner > svg {
+  color: var(--holiday-gold);
+  flex-shrink: 0;
+}
+.holiday-banner p {
+  margin: 0;
+}
+.holiday-banner button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--holiday-gold);
+  color: var(--holiday-gold);
+  padding: 8px 12px;
+  min-height: 44px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.holiday-banner button:hover {
+  background: #ffffff14;
+}
+.holiday-banner button:active {
+  transform: scale(0.98);
+}
+.holiday-banner button:focus-visible {
+  outline: 2px solid #fffaf3;
+  outline-offset: 3px;
+}
+.holiday-snow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  overflow: hidden;
+}
+.holiday-snow i {
+  position: absolute;
+  top: -12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 2px #653c3570;
+  opacity: 0.7;
+  animation: holiday-fall linear infinite;
+}
+.holiday-snow.paused {
+  display: none;
+}
+@keyframes holiday-fall {
+  from {
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    transform: translate3d(30px, 105vh, 0);
+  }
+}
+@media (max-width: 600px) {
+  .holiday-banner {
+    padding: 12px;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .holiday-banner p {
+    flex: 1;
+  }
+  .holiday-banner p span {
+    display: none;
+  }
+  .holiday-banner button {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .holiday-snow i:nth-child(even) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .holiday-snow {
+    display: none;
+  }
+  .holiday-banner button {
+    transition: none;
+  }
+  .holiday-banner button:active {
+    transform: none;
+  }
+}

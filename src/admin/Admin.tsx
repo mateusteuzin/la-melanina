@@ -93,8 +93,24 @@ const initial = (s: string) =>
     .join('')
     .toUpperCase();
 const iconSize = 18;
+function catalogId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
-function Modal({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) {
+function Modal({
+  title,
+  close,
+  children,
+}: {
+  title: string;
+  close: () => void;
+  children: React.ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement;
@@ -182,11 +198,12 @@ export function Admin() {
   const [balanceOnly, setBalanceOnly] = useState(false);
   const [availabilityService, setAvailabilityService] = useState('solazul');
   const [availabilityTime, setAvailabilityTime] = useState('');
-  const [availabilityReady,setAvailabilityReady]=useState(false);
-  const [availabilityRevision,setAvailabilityRevision]=useState(0);
+  const [availabilityReady, setAvailabilityReady] = useState(false);
+  const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const [newBooking, setNewBooking] = useState(false);
   const [editService, setEditService] = useState<Service | null>(null);
   const [editAddon, setEditAddon] = useState<Addon | null>(null);
+  const [financeView, setFinanceView] = useState<'received' | 'pending'>('received');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState<null | { appointment: Appointment; status: Status }>(null);
@@ -202,7 +219,7 @@ export function Admin() {
   const refresh = async () => {
     try {
       setData(await loadAdmin());
-      setAvailabilityRevision(v=>v+1);
+      setAvailabilityRevision((v) => v + 1);
       setError('');
     } catch (e) {
       setError((e as Error).message);
@@ -257,7 +274,8 @@ export function Admin() {
     setError('');
     try {
       await action();
-      await refresh();
+      setData(await loadAdmin());
+      setAvailabilityRevision((v) => v + 1);
       setNotice(message);
       close?.();
     } catch (e) {
@@ -283,7 +301,7 @@ export function Admin() {
     .filter(
       (a) =>
         (!onlyDay || a.date === day) &&
-        (!balanceOnly || (active(a.status) && paid(a)<a.amount)) &&
+        (!balanceOnly || (active(a.status) && paid(a) < a.amount)) &&
         (status === 'todos' || a.status === status) &&
         `${a.name} ${a.phone} ${a.serviceName}`.toLowerCase().includes(search.toLowerCase())
     )
@@ -291,7 +309,17 @@ export function Admin() {
 
   const clients = Object.values(
     rows.reduce<
-      Record<string, { name: string; phone: string; visits: number; total: number; last: string; appointments: Appointment[] }>
+      Record<
+        string,
+        {
+          name: string;
+          phone: string;
+          visits: number;
+          total: number;
+          last: string;
+          appointments: Appointment[];
+        }
+      >
     >((acc, a) => {
       const key = a.phone || a.name.toLowerCase().trim();
       const c = (acc[key] ||= {
@@ -317,15 +345,28 @@ export function Admin() {
   function exportCSV() {
     const headers =
       section === 'finance'
-        ? ['Cliente', 'Serviço', 'Data do pagamento', 'Forma', 'Valor']
+        ? financeView === 'pending'
+          ? ['Cliente', 'Serviço', 'Data do atendimento', 'Total', 'Recebido', 'Saldo']
+          : ['Cliente', 'Serviço', 'Data do pagamento', 'Forma', 'Valor']
         : ['Cliente', 'Telefone', 'Serviço', 'Data', 'Horário', 'Situação', 'Valor', 'Recebido'];
     const content =
       section === 'finance'
-        ? rows.flatMap((a) =>
-            a.payments
-              .filter((p) => p.date.startsWith(month))
-              .map((p) => [a.name, a.serviceName, p.date, p.method, p.amount.toFixed(2)])
-          )
+        ? financeView === 'pending'
+          ? monthRows
+              .filter((a) => active(a.status) && paid(a) < a.amount)
+              .map((a) => [
+                a.name,
+                a.serviceName,
+                a.date,
+                a.amount.toFixed(2),
+                paid(a).toFixed(2),
+                (a.amount - paid(a)).toFixed(2),
+              ])
+          : rows.flatMap((a) =>
+              a.payments
+                .filter((p) => p.date.startsWith(month))
+                .map((p) => [a.name, a.serviceName, p.date, p.method, p.amount.toFixed(2)])
+            )
         : filtered.map((a) => [
             a.name,
             a.phone,
@@ -336,10 +377,18 @@ export function Admin() {
             a.amount.toFixed(2),
             paid(a).toFixed(2),
           ]);
-    const escape = (v: unknown) => '"' + String(v).replace(/^[=+@-]/, "'$&").replaceAll('"', '""') + '"';
-    const blob = new Blob(['\ufeff' + [headers, ...content].map((r) => r.map(escape).join(';')).join('\r\n')], {
-      type: 'text/csv;charset=utf-8',
-    });
+    const escape = (v: unknown) =>
+      '"' +
+      String(v)
+        .replace(/^[=+@-]/, "'$&")
+        .replaceAll('"', '""') +
+      '"';
+    const blob = new Blob(
+      ['\ufeff' + [headers, ...content].map((r) => r.map(escape).join(';')).join('\r\n')],
+      {
+        type: 'text/csv;charset=utf-8',
+      }
+    );
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `la-melanina-${section}-${month}.csv`;
@@ -361,25 +410,84 @@ export function Admin() {
     setSearch('');
     setOnlyDay(id === 'agenda');
     setBalanceOnly(false);
-    if (id === 'agenda') { setDay(todayISO()); setMonth(todayISO().slice(0,7)); }
+    if (id === 'agenda') {
+      setDay(todayISO());
+      setMonth(todayISO().slice(0, 7));
+    }
     setStatus('todos');
   }
 
-  function shiftDay(delta:number) {
-    const date=new Date(day+'T12:00:00'); date.setDate(date.getDate()+delta);
-    const next=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-    setDay(next);setMonth(next.slice(0,7));setOnlyDay(true);
+  function shiftDay(delta: number) {
+    const date = new Date(day + 'T12:00:00');
+    date.setDate(date.getDate() + delta);
+    const next = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    setDay(next);
+    setMonth(next.slice(0, 7));
+    setOnlyDay(true);
   }
 
-  function quickActions(a:Appointment) {
-    return <div className="adm-row-actions">
-      {a.status==='pendente' && <button disabled={busy} className="adm-button" onClick={()=>run(()=>updateBooking({...a,status:'confirmado'}),'Agendamento confirmado.')}>Confirmar</button>}
-      {active(a.status)&&paid(a)<a.amount&&<button className="adm-button" onClick={()=>{openDetail(a);setTimeout(()=>document.getElementById('admin-payment')?.scrollIntoView({behavior:'smooth'}),100);}}>Receber</button>}
-      <button className="adm-button" onClick={()=>openDetail(a)}>Remarcar / editar</button>
-      {a.phone && <a className="adm-button" href={`https://wa.me/${a.phone.startsWith('55')?a.phone:'55'+a.phone}`} target="_blank" rel="noreferrer">WhatsApp <ExternalLink size={13}/></a>}
-      {['pendente','confirmado'].includes(a.status)&&<button disabled={busy} className="adm-button" onClick={()=>setConfirm({appointment:a,status:'concluido'})}>Concluir</button>}
-      {active(a.status)&&<button disabled={busy} className="adm-text-button" onClick={()=>setConfirm({appointment:a,status:'cancelado'})}>Cancelar</button>}
-    </div>;
+  function quickActions(a: Appointment) {
+    return (
+      <div className="adm-row-actions">
+        {a.status === 'pendente' && (
+          <button
+            disabled={busy}
+            className="adm-button"
+            onClick={() =>
+              run(() => updateBooking({ ...a, status: 'confirmado' }), 'Agendamento confirmado.')
+            }
+          >
+            Confirmar
+          </button>
+        )}
+        {active(a.status) && paid(a) < a.amount && (
+          <button
+            className="adm-button"
+            onClick={() => {
+              openDetail(a);
+              setTimeout(
+                () =>
+                  document.getElementById('admin-payment')?.scrollIntoView({ behavior: 'smooth' }),
+                100
+              );
+            }}
+          >
+            Receber
+          </button>
+        )}
+        <button className="adm-button" onClick={() => openDetail(a)}>
+          Remarcar / editar
+        </button>
+        {a.phone && (
+          <a
+            className="adm-button"
+            href={`https://wa.me/${a.phone.startsWith('55') ? a.phone : '55' + a.phone}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            WhatsApp <ExternalLink size={13} />
+          </a>
+        )}
+        {['pendente', 'confirmado'].includes(a.status) && (
+          <button
+            disabled={busy}
+            className="adm-button"
+            onClick={() => setConfirm({ appointment: a, status: 'concluido' })}
+          >
+            Concluir
+          </button>
+        )}
+        {active(a.status) && (
+          <button
+            disabled={busy}
+            className="adm-text-button"
+            onClick={() => setConfirm({ appointment: a, status: 'cancelado' })}
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+    );
   }
 
   function appointmentTable(list: Appointment[]) {
@@ -429,8 +537,8 @@ export function Admin() {
                       {a.category === 'natural'
                         ? 'Bronze natural'
                         : a.category === 'cabine'
-                        ? 'Bronze em cabine'
-                        : 'Clareamento'}
+                          ? 'Bronze em cabine'
+                          : 'Clareamento'}
                     </small>
                   </td>
                   <td>
@@ -443,11 +551,17 @@ export function Admin() {
                   <td>
                     <strong>{money(a.amount)}</strong>
                     <small>
-                      {paid(a) >= a.amount ? 'Pago integralmente' : `Pago ${money(paid(a))} · Falta ${money(Math.max(0,a.amount-paid(a)))}`}
+                      {paid(a) >= a.amount
+                        ? 'Pago integralmente'
+                        : `Pago ${money(paid(a))} · Falta ${money(Math.max(0, a.amount - paid(a)))}`}
                     </small>
                   </td>
                   <td>
-                    {a.serviceId==='duplo' && Number(a.time.slice(0,2))>=12 && active(a.status) && <span className="adm-rule-warning">Remarcar: Duplo somente de manhã</span>}
+                    {a.serviceId === 'duplo' &&
+                      Number(a.time.slice(0, 2)) >= 12 &&
+                      active(a.status) && (
+                        <span className="adm-rule-warning">Remarcar: Duplo somente de manhã</span>
+                      )}
                     {quickActions(a)}
                     <button
                       className="adm-icon"
@@ -485,8 +599,8 @@ export function Admin() {
                     {a.category === 'natural'
                       ? 'Bronze natural'
                       : a.category === 'cabine'
-                      ? 'Bronze em cabine'
-                      : 'Clareamento'}
+                        ? 'Bronze em cabine'
+                        : 'Clareamento'}
                   </small>
                 </div>
                 <div className="adm-app-card-info">
@@ -497,13 +611,17 @@ export function Admin() {
               </div>
               <div className="adm-app-card-foot">
                 <div className="adm-app-card-amount">
-                  <span>Valor: <strong>{money(a.amount)}</strong></span>
+                  <span>
+                    Valor: <strong>{money(a.amount)}</strong>
+                  </span>
                   <span
                     className={`adm-pay-tag ${
                       paid(a) >= a.amount ? 'pago' : paid(a) > 0 ? 'sinal' : 'pendente'
                     }`}
                   >
-                    {paid(a) >= a.amount ? 'Pago integralmente' : `Pago ${money(paid(a))} · Falta ${money(Math.max(0,a.amount-paid(a)))}`}
+                    {paid(a) >= a.amount
+                      ? 'Pago integralmente'
+                      : `Pago ${money(paid(a))} · Falta ${money(Math.max(0, a.amount - paid(a)))}`}
                   </span>
                 </div>
                 <button
@@ -514,7 +632,9 @@ export function Admin() {
                   Detalhes <ArrowUpRight size={15} />
                 </button>
               </div>
-              {a.serviceId==='duplo' && Number(a.time.slice(0,2))>=12 && active(a.status) && <p className="adm-rule-warning">Remarcar: Bronze Duplo somente pela manhã.</p>}
+              {a.serviceId === 'duplo' && Number(a.time.slice(0, 2)) >= 12 && active(a.status) && (
+                <p className="adm-rule-warning">Remarcar: Bronze Duplo somente pela manhã.</p>
+              )}
               {quickActions(a)}
             </article>
           ))}
@@ -667,6 +787,7 @@ export function Admin() {
             { id: 'overview', label: 'Início', Icon: LayoutDashboard },
             { id: 'agenda', label: 'Agenda', Icon: CalendarDays },
             { id: 'clients', label: 'Clientes', Icon: Users },
+            { id: 'finance', label: 'Financeiro', Icon: Wallet },
           ] as const
         ).map(({ id, label, Icon }) => (
           <button
@@ -680,11 +801,7 @@ export function Admin() {
           </button>
         ))}
         <button
-          className={
-            mobileMenu || ['finance', 'services', 'settings'].includes(section)
-              ? 'selected'
-              : ''
-          }
+          className={mobileMenu || ['services', 'settings'].includes(section) ? 'selected' : ''}
           onClick={() => setMobileMenu((open) => !open)}
           aria-expanded={mobileMenu}
           aria-controls="adm-mobile-more"
@@ -695,7 +812,7 @@ export function Admin() {
         {mobileMenu && (
           <div className="adm-mobile-more" id="adm-mobile-more">
             {navigation
-              .filter(({ id }) => id === 'finance' || id === 'services' || id === 'settings')
+              .filter(({ id }) => id === 'services' || id === 'settings')
               .map(({ id, label, Icon }) => (
                 <button
                   className={section === id ? 'selected' : ''}
@@ -744,7 +861,8 @@ export function Admin() {
             <div className="adm-demo-banner">
               <Sparkles size={15} />
               <span>
-                <strong>Modo demonstração.</strong> Dados fictícios, salvos só neste navegador. Conexão com Supabase pendente.
+                <strong>Modo demonstração.</strong> Dados fictícios, salvos só neste navegador.
+                Conexão com Supabase pendente.
               </span>
             </div>
           )}
@@ -761,14 +879,15 @@ export function Admin() {
               </h1>
               <p>
                 {
-                  ({
-                    overview: 'Acompanhe sua agenda, seus atendimentos e o brilho dos seus resultados.',
+                  {
+                    overview:
+                      'Acompanhe sua agenda, seus atendimentos e o brilho dos seus resultados.',
                     agenda: 'Cada horário organizado. Cada cliente bem cuidada.',
                     clients: 'Conheça quem confia no seu trabalho.',
                     finance: 'Veja o que entrou, o que falta receber e o que você realizou.',
                     services: 'Seu catálogo e seus preços, sempre atualizados.',
                     settings: 'Organize suas pausas e a disponibilidade do estúdio.',
-                  })[section]
+                  }[section]
                 }
               </p>
             </div>
@@ -809,8 +928,8 @@ export function Admin() {
                     {section === 'overview'
                       ? 'Seu estúdio em números'
                       : section === 'finance'
-                      ? 'Resumo do período'
-                      : 'Agendamentos do período'}
+                        ? 'Resumo do período'
+                        : 'Agendamentos do período'}
                   </span>
                   <div className="adm-period">
                     <button onClick={() => shiftMonth(-1)} aria-label="Mês anterior">
@@ -959,67 +1078,235 @@ export function Admin() {
               {section === 'agenda' && (
                 <div className="adm-agenda-workspace">
                   <div className="adm-agenda-toolbar">
-                    <div><h2>{onlyDay ? (day===todayISO()?'Agenda de hoje':dateLabel(day)) : 'Agenda do mês'}</h2><p>Atendimentos, recebimentos e vagas em um só lugar.</p></div>
-                    <div className="adm-day-navigation"><button className="adm-button" aria-label="Dia anterior" onClick={()=>shiftDay(-1)}><ChevronLeft size={18}/></button><button className="adm-button" onClick={()=>{setDay(todayISO());setMonth(todayISO().slice(0,7));setOnlyDay(true);}}>Hoje</button><button className="adm-button" onClick={()=>{const d=new Date(todayISO()+'T12:00:00');d.setDate(d.getDate()+1);const next=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;setDay(next);setMonth(next.slice(0,7));setOnlyDay(true);}}>Amanhã</button><button className="adm-button" aria-label="Próximo dia" onClick={()=>shiftDay(1)}><ChevronRight size={18}/></button></div>
+                    <div>
+                      <h2>
+                        {onlyDay
+                          ? day === todayISO()
+                            ? 'Agenda de hoje'
+                            : dateLabel(day)
+                          : 'Agenda do mês'}
+                      </h2>
+                      <p>Atendimentos, recebimentos e vagas em um só lugar.</p>
+                    </div>
+                    <div className="adm-day-navigation">
+                      <button
+                        className="adm-button"
+                        aria-label="Dia anterior"
+                        onClick={() => shiftDay(-1)}
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        className="adm-button"
+                        onClick={() => {
+                          setDay(todayISO());
+                          setMonth(todayISO().slice(0, 7));
+                          setOnlyDay(true);
+                        }}
+                      >
+                        Hoje
+                      </button>
+                      <button
+                        className="adm-button"
+                        onClick={() => {
+                          const d = new Date(todayISO() + 'T12:00:00');
+                          d.setDate(d.getDate() + 1);
+                          const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                          setDay(next);
+                          setMonth(next.slice(0, 7));
+                          setOnlyDay(true);
+                        }}
+                      >
+                        Amanhã
+                      </button>
+                      <button
+                        className="adm-button"
+                        aria-label="Próximo dia"
+                        onClick={() => shiftDay(1)}
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
                   </div>
                   <div className="adm-agenda-summary">
-                    <div><span>Atendimentos no dia</span><strong>{dayRows.length}</strong></div>
-                    <div><span>Recebido no dia selecionado</span><strong>{money(rows.reduce((total,a)=>total+a.payments.filter(p=>p.date===day).reduce((v,p)=>v+p.amount,0),0))}</strong></div>
-                    <div><span>Saldo dos atendimentos do dia</span><strong>{money(dayRows.reduce((v,a)=>v+Math.max(0,a.amount-paid(a)),0))}</strong></div>
+                    <div>
+                      <span>Atendimentos no dia</span>
+                      <strong>{dayRows.length}</strong>
+                    </div>
+                    <div>
+                      <span>Recebido no dia selecionado</span>
+                      <strong>
+                        {money(
+                          rows.reduce(
+                            (total, a) =>
+                              total +
+                              a.payments
+                                .filter((p) => p.date === day)
+                                .reduce((v, p) => v + p.amount, 0),
+                            0
+                          )
+                        )}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Saldo dos atendimentos do dia</span>
+                      <strong>
+                        {money(dayRows.reduce((v, a) => v + Math.max(0, a.amount - paid(a)), 0))}
+                      </strong>
+                    </div>
                   </div>
                   <section className="adm-card">
-                  <div className="adm-filters">
-                    <label className="adm-search">
-                      <Search size={17} />
-                      <input
-                        aria-label="Buscar agendamentos"
-                        placeholder="Buscar cliente ou serviço…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                    </label>
-                    <select
-                      aria-label="Filtrar situação"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                    >
-                      <option value="todos">Todas as situações</option>
-                      {Object.entries(labels).map(([k, v]) => (
-                        <option value={k} key={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="adm-check">
-                      <input
-                        type="checkbox"
-                        checked={onlyDay}
-                        onChange={(e) => setOnlyDay(e.target.checked)}
-                      />
-                      Por dia
-                    </label>
-                    {onlyDay && (
-                      <input
-                        aria-label="Dia da agenda"
-                        type="date"
-                        value={day}
-                        onInput={(e) => {
-                          setDay(e.currentTarget.value);
-                          setMonth(e.currentTarget.value.slice(0, 7));
-                        }}
-                      />
+                    <div className="adm-filters">
+                      <label className="adm-search">
+                        <Search size={17} />
+                        <input
+                          aria-label="Buscar agendamentos"
+                          placeholder="Buscar cliente ou serviço…"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                      </label>
+                      <select
+                        aria-label="Filtrar situação"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                      >
+                        <option value="todos">Todas as situações</option>
+                        {Object.entries(labels).map(([k, v]) => (
+                          <option value={k} key={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                      <label className="adm-check">
+                        <input
+                          type="checkbox"
+                          checked={onlyDay}
+                          onChange={(e) => setOnlyDay(e.target.checked)}
+                        />
+                        Por dia
+                      </label>
+                      {onlyDay && (
+                        <input
+                          aria-label="Dia da agenda"
+                          type="date"
+                          value={day}
+                          onInput={(e) => {
+                            setDay(e.currentTarget.value);
+                            setMonth(e.currentTarget.value.slice(0, 7));
+                          }}
+                        />
+                      )}
+                      <button className="adm-button" onClick={exportCSV}>
+                        <Download size={16} /> Exportar
+                      </button>
+                    </div>
+                    <div className="adm-agenda-options">
+                      <label className="adm-check">
+                        <input
+                          type="checkbox"
+                          checked={balanceOnly}
+                          onChange={(e) => setBalanceOnly(e.target.checked)}
+                        />
+                        Somente saldo pendente
+                      </label>
+                      <button className="adm-text-button" disabled={busy} onClick={refresh}>
+                        <RefreshCw size={15} /> Atualizar agenda
+                      </button>
+                    </div>
+                    {onlyDay ? (
+                      <>
+                        {[
+                          [
+                            'Manhã',
+                            filtered.filter(
+                              (a) => a.category !== 'natural' && Number(a.time.slice(0, 2)) < 12
+                            ),
+                          ],
+                          [
+                            'Tarde e noite',
+                            filtered.filter(
+                              (a) => a.category !== 'natural' && Number(a.time.slice(0, 2)) >= 12
+                            ),
+                          ],
+                          ['Bronze natural', filtered.filter((a) => a.category === 'natural')],
+                        ].map(([label, list]) => (
+                          <section className="adm-agenda-period" key={label as string}>
+                            <h3>
+                              {label as string}
+                              <span>{(list as Appointment[]).length}</span>
+                            </h3>
+                            {appointmentTable(list as Appointment[])}
+                          </section>
+                        ))}
+                      </>
+                    ) : (
+                      appointmentTable(filtered)
                     )}
-                    <button className="adm-button" onClick={exportCSV}>
-                      <Download size={16} /> Exportar
-                    </button>
-                  </div>
-                  <div className="adm-agenda-options"><label className="adm-check"><input type="checkbox" checked={balanceOnly} onChange={e=>setBalanceOnly(e.target.checked)}/>Somente saldo pendente</label><button className="adm-text-button" disabled={busy} onClick={refresh}><RefreshCw size={15}/> Atualizar agenda</button></div>
-                  {onlyDay ? <>{[['Manhã',filtered.filter(a=>a.category!=='natural'&&Number(a.time.slice(0,2))<12)],['Tarde e noite',filtered.filter(a=>a.category!=='natural'&&Number(a.time.slice(0,2))>=12)],['Bronze natural',filtered.filter(a=>a.category==='natural')]].map(([label,list])=><section className="adm-agenda-period" key={label as string}><h3>{label as string}<span>{(list as Appointment[]).length}</span></h3>{appointmentTable(list as Appointment[])}</section>)}</> : appointmentTable(filtered)}
-                  <div className="adm-table-footer">
-                    {filtered.length} agendamento(s) encontrado(s)
-                  </div>
-                </section>
-                {data && <section className="adm-card adm-availability-panel"><h2>Consultar vagas livres</h2><p>Escolha o serviço e toque em uma vaga para criar um agendamento.</p><div className="adm-form-grid"><Field label="Serviço"><select value={availabilityService} onChange={e=>{setAvailabilityService(e.target.value);setAvailabilityTime('');}}>{data.services.filter(s=>s.active).map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></Field><Field label="Data"><input type="date" value={day} onChange={e=>{if(e.target.value){setDay(e.target.value);setMonth(e.target.value.slice(0,7));setAvailabilityTime('');}}}/></Field></div><Availability date={day} serviceId={availabilityService} value={availabilityTime} onChange={setAvailabilityTime} revision={availabilityRevision} onReady={setAvailabilityReady}/><button className="adm-button primary" disabled={!availabilityTime || !availabilityReady} onClick={()=>setNewBooking(true)}>Agendar nesta vaga</button>{data.blocks.filter(b=>b.date===day).map(b=><p className="adm-rule-warning" key={b.id}>Bloqueado: {blockLabel(b.time)} · {b.reason}</p>)}</section>}
+                    <div className="adm-table-footer">
+                      {filtered.length} agendamento(s) encontrado(s)
+                    </div>
+                  </section>
+                  {data && (
+                    <section className="adm-card adm-availability-panel">
+                      <h2>Consultar vagas livres</h2>
+                      <p>Escolha o serviço e toque em uma vaga para criar um agendamento.</p>
+                      <div className="adm-form-grid">
+                        <Field label="Serviço">
+                          <select
+                            value={availabilityService}
+                            onChange={(e) => {
+                              setAvailabilityService(e.target.value);
+                              setAvailabilityTime('');
+                            }}
+                          >
+                            {data.services
+                              .filter((s) => s.active)
+                              .map((s) => (
+                                <option value={s.id} key={s.id}>
+                                  {s.name}
+                                </option>
+                              ))}
+                          </select>
+                        </Field>
+                        <Field label="Data">
+                          <input
+                            type="date"
+                            value={day}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setDay(e.target.value);
+                                setMonth(e.target.value.slice(0, 7));
+                                setAvailabilityTime('');
+                              }
+                            }}
+                          />
+                        </Field>
+                      </div>
+                      <Availability
+                        date={day}
+                        serviceId={availabilityService}
+                        value={availabilityTime}
+                        onChange={setAvailabilityTime}
+                        revision={availabilityRevision}
+                        onReady={setAvailabilityReady}
+                      />
+                      <button
+                        className="adm-button primary"
+                        disabled={!availabilityTime || !availabilityReady}
+                        onClick={() => setNewBooking(true)}
+                      >
+                        Agendar nesta vaga
+                      </button>
+                      {data.blocks
+                        .filter((b) => b.date === day)
+                        .map((b) => (
+                          <p className="adm-rule-warning" key={b.id}>
+                            Bloqueado: {blockLabel(b.time)} · {b.reason}
+                          </p>
+                        ))}
+                    </section>
+                  )}
                 </div>
               )}
 
@@ -1039,7 +1326,10 @@ export function Admin() {
                   </div>
                   <div className="adm-client-grid">
                     {visibleClients.map((c) => (
-                      <section className="adm-card adm-client-card" key={c.phone || c.name.toLowerCase().trim()}>
+                      <section
+                        className="adm-card adm-client-card"
+                        key={c.phone || c.name.toLowerCase().trim()}
+                      >
                         <span className="adm-avatar large">{initial(c.name)}</span>
                         <h2>{c.name}</h2>
                         <p>{c.phone || 'Telefone não informado'}</p>
@@ -1079,11 +1369,29 @@ export function Admin() {
                   </div>
                   {clients.length > 0 && (
                     <nav className="adm-client-pagination" aria-label="Páginas de clientes">
-                      <span aria-live="polite">{(currentClientPage - 1) * 12 + 1}–{Math.min(currentClientPage * 12, clients.length)} de {clients.length} clientes</span>
+                      <span aria-live="polite">
+                        {(currentClientPage - 1) * 12 + 1}–
+                        {Math.min(currentClientPage * 12, clients.length)} de {clients.length}{' '}
+                        clientes
+                      </span>
                       <div>
-                        <button className="adm-button" disabled={currentClientPage === 1} onClick={() => setClientPage(currentClientPage - 1)}>Anterior</button>
-                        <span>Página {currentClientPage} de {clientPageCount}</span>
-                        <button className="adm-button" disabled={currentClientPage === clientPageCount} onClick={() => setClientPage(currentClientPage + 1)}>Próxima</button>
+                        <button
+                          className="adm-button"
+                          disabled={currentClientPage === 1}
+                          onClick={() => setClientPage(currentClientPage - 1)}
+                        >
+                          Anterior
+                        </button>
+                        <span>
+                          Página {currentClientPage} de {clientPageCount}
+                        </span>
+                        <button
+                          className="adm-button"
+                          disabled={currentClientPage === clientPageCount}
+                          onClick={() => setClientPage(currentClientPage + 1)}
+                        >
+                          Próxima
+                        </button>
                       </div>
                     </nav>
                   )}
@@ -1092,7 +1400,7 @@ export function Admin() {
               )}
 
               {section === 'finance' && (
-                <>
+                <div className="adm-finance">
                   <div className="adm-overview-grid">
                     <section className="adm-card adm-chart">
                       <div className="adm-card-heading">
@@ -1128,61 +1436,165 @@ export function Admin() {
                   <section className="adm-card">
                     <div className="adm-card-heading">
                       <div>
-                        <h2>Histórico de recebimentos</h2>
-                        <p>O mês é definido pela data em que o pagamento entrou.</p>
+                        <h2>{financeView === 'received' ? 'Recebimentos' : 'Valores a receber'}</h2>
+                        <p>
+                          {financeView === 'received'
+                            ? 'Pagamentos pela data de recebimento.'
+                            : 'Saldo dos agendamentos ativos no mês selecionado.'}
+                        </p>
                       </div>
                       <button className="adm-button" onClick={exportCSV}>
                         <Download size={16} /> Exportar CSV
                       </button>
                     </div>
-                    <div className="adm-table-wrap">
-                      <table className="adm-table">
-                        <thead>
-                          <tr>
-                            <th>Cliente</th>
-                            <th>Serviço</th>
-                            <th>Data</th>
-                            <th>Forma</th>
-                            <th>Recebido</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.flatMap((a) =>
-                            a.payments
-                              .filter((p) => p.date.startsWith(month))
-                              .map((p) => (
-                                <tr key={p.id}>
-                                  <td>
-                                    <button
-                                      className="adm-text-button"
-                                      onClick={() => openDetail(a)}
-                                    >
-                                      {a.name}
-                                    </button>
-                                  </td>
-                                  <td>{a.serviceName}</td>
-                                  <td>{dateLabel(p.date)}</td>
-                                  <td>
-                                    <span className="adm-badge confirmado">{p.method}</span>
-                                  </td>
-                                  <td>
-                                    <strong>{money(p.amount)}</strong>
-                                  </td>
-                                </tr>
-                              ))
-                          )}
-                        </tbody>
-                      </table>
+                    <div
+                      className="adm-finance-tabs"
+                      role="group"
+                      aria-label="Movimentações financeiras"
+                    >
+                      <button
+                        className={'adm-button ' + (financeView === 'received' ? 'primary' : '')}
+                        aria-pressed={financeView === 'received'}
+                        onClick={() => setFinanceView('received')}
+                      >
+                        Recebido · {money(summary.received)}
+                      </button>
+                      <button
+                        className={'adm-button ' + (financeView === 'pending' ? 'primary' : '')}
+                        aria-pressed={financeView === 'pending'}
+                        onClick={() => setFinanceView('pending')}
+                      >
+                        A receber · {money(summary.expected)}
+                      </button>
                     </div>
-                    {summary.received === 0 && (
-                      <div className="adm-empty">Sem recebimentos registrados neste mês.</div>
+                    {financeView === 'pending' ? (
+                      <div className="adm-finance-list">
+                        {monthRows
+                          .filter((a) => active(a.status) && paid(a) < a.amount)
+                          .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+                          .map((a) => (
+                            <article className="adm-finance-entry" key={a.id}>
+                              <div>
+                                <button className="adm-text-button" onClick={() => openDetail(a)}>
+                                  {a.name}
+                                </button>
+                                <p>{a.serviceName}</p>
+                                <small>
+                                  {dateLabel(a.date)} · {a.time}
+                                </small>
+                              </div>
+                              <div className="adm-finance-value">
+                                <strong>{money(a.amount - paid(a))}</strong>
+                                <small>Recebido: {money(paid(a))}</small>
+                                <button
+                                  className="adm-button primary"
+                                  onClick={() => openDetail(a)}
+                                >
+                                  Receber
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        {summary.expected === 0 && (
+                          <div className="adm-empty">Nenhum saldo a receber neste mês.</div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="adm-finance-list adm-finance-mobile">
+                          {rows
+                            .flatMap((a) =>
+                              a.payments
+                                .filter((p) => p.date.startsWith(month))
+                                .map((p) => ({ a, p }))
+                            )
+                            .sort((x, y) => y.p.date.localeCompare(x.p.date))
+                            .map(({ a, p }) => (
+                              <article className="adm-finance-entry" key={p.id}>
+                                <div>
+                                  <button className="adm-text-button" onClick={() => openDetail(a)}>
+                                    {a.name}
+                                  </button>
+                                  <p>{a.serviceName}</p>
+                                  <small>
+                                    {dateLabel(p.date)} · {p.method}
+                                  </small>
+                                </div>
+                                <strong>{money(p.amount)}</strong>
+                              </article>
+                            ))}
+                        </div>
+                        <div className="adm-table-wrap">
+                          <table className="adm-table">
+                            <thead>
+                              <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Data</th>
+                                <th>Forma</th>
+                                <th>Recebido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.flatMap((a) =>
+                                a.payments
+                                  .filter((p) => p.date.startsWith(month))
+                                  .map((p) => (
+                                    <tr key={p.id}>
+                                      <td>
+                                        <button
+                                          className="adm-text-button"
+                                          onClick={() => openDetail(a)}
+                                        >
+                                          {a.name}
+                                        </button>
+                                      </td>
+                                      <td>{a.serviceName}</td>
+                                      <td>{dateLabel(p.date)}</td>
+                                      <td>
+                                        <span className="adm-badge confirmado">{p.method}</span>
+                                      </td>
+                                      <td>
+                                        <strong>{money(p.amount)}</strong>
+                                      </td>
+                                    </tr>
+                                  ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {summary.received === 0 && (
+                          <div className="adm-empty">Sem recebimentos registrados neste mês.</div>
+                        )}
+                      </>
                     )}
                   </section>
-                </>
+                </div>
               )}
 
               {section === 'services' && (
                 <>
+                  <div className="adm-catalog-toolbar">
+                    <h2>Serviços</h2>
+                    <button
+                      className="adm-button primary"
+                      onClick={() => {
+                        setError('');
+                        setEditService({
+                          id: catalogId(),
+                          name: '',
+                          desc: '',
+                          price: 0,
+                          duration: 180,
+                          category: 'natural',
+                          active: true,
+                        });
+                      }}
+                    >
+                      <Plus size={18} />
+                      Novo serviço
+                    </button>
+                  </div>
                   <div className="adm-client-grid">
                     {data.services.map((s) => (
                       <section className="adm-card adm-service-card" key={s.id}>
@@ -1194,11 +1606,7 @@ export function Admin() {
                           >
                             <Sun size={22} />
                           </span>
-                          <span
-                            className={
-                              'adm-badge ' + (s.active ? 'confirmado' : 'cancelado')
-                            }
-                          >
+                          <span className={'adm-badge ' + (s.active ? 'confirmado' : 'cancelado')}>
                             {s.active ? 'Disponível' : 'Pausado'}
                           </span>
                         </div>
@@ -1206,8 +1614,8 @@ export function Admin() {
                           {s.category === 'natural'
                             ? 'BRONZE NATURAL'
                             : s.category === 'cabine'
-                            ? 'BRONZE EM CABINE'
-                            : 'CLAREAMENTO'}
+                              ? 'BRONZE EM CABINE'
+                              : 'CLAREAMENTO'}
                         </small>
                         <h2>{s.name}</h2>
                         <p>{s.desc}</p>
@@ -1218,10 +1626,7 @@ export function Admin() {
                             ? 'Horário de chegada'
                             : s.duration + ' minutos'}
                         </span>
-                        <button
-                          className="adm-button"
-                          onClick={() => setEditService({ ...s })}
-                        >
+                        <button className="adm-button" onClick={() => setEditService({ ...s })}>
                           Editar serviço <ArrowUpRight size={16} />
                         </button>
                       </section>
@@ -1230,6 +1635,16 @@ export function Admin() {
                   <section className="adm-card">
                     <div className="adm-card-heading">
                       <h2>Adicionais</h2>
+                      <button
+                        className="adm-button primary"
+                        onClick={() => {
+                          setError('');
+                          setEditAddon({ id: catalogId(), name: '', price: 0 });
+                        }}
+                      >
+                        <Plus size={18} />
+                        Novo adicional
+                      </button>
                     </div>
                     <div className="adm-addons">
                       {data.addons.map((a) => (
@@ -1299,10 +1714,7 @@ export function Admin() {
                         />
                       </Field>
                       <Field label="O que deseja bloquear?">
-                        <select
-                          value={blockType}
-                          onChange={(e) => setBlockType(e.target.value)}
-                        >
+                        <select value={blockType} onChange={(e) => setBlockType(e.target.value)}>
                           <option value="dia">Dia inteiro — todos os serviços</option>
                           <optgroup label="Cabine e clareamento">
                             <option value={periods[0]}>Manhã — das 08h às 12h</option>
@@ -1327,10 +1739,7 @@ export function Admin() {
                       )}
                       {blockType === 'vaga-natural' && (
                         <Field label="Vaga do bronze natural">
-                          <select
-                            value={blockSlot}
-                            onChange={(e) => setBlockSlot(e.target.value)}
-                          >
+                          <select value={blockSlot} onChange={(e) => setBlockSlot(e.target.value)}>
                             {naturalTimes.map((slot) => (
                               <option key={slot} value={slot}>
                                 {slot}
@@ -1340,9 +1749,8 @@ export function Admin() {
                         </Field>
                       )}
                       <p className="adm-help">
-                        Um horário bloqueia uma hora a partir do início. O bronze natural usa
-                        vagas numeradas; períodos da manhã e da tarde valem para cabine e
-                        clareamento.
+                        Um horário bloqueia uma hora a partir do início. O bronze natural usa vagas
+                        numeradas; períodos da manhã e da tarde valem para cabine e clareamento.
                       </p>
                       <Field label="Motivo">
                         <input
@@ -1392,9 +1800,9 @@ export function Admin() {
                       clientes. É possível abrir também às segundas-feiras.
                     </p>
                     <p>
-                      Bronze natural: 12 vagas por dia, sem horário escolhido. Sábado: 08h às 11h
-                      e 14h às 16h; domingo: 08h às 12h. Cabine e clareamento compartilham a agenda
-                      de horários.
+                      Bronze natural: 12 vagas por dia, sem horário escolhido. Sábado: 08h às 11h e
+                      14h às 16h; domingo: 08h às 12h. Cabine e clareamento compartilham a agenda de
+                      horários.
                     </p>
                     <h2>Conexão e acesso</h2>
                     <p>
@@ -1423,8 +1831,8 @@ export function Admin() {
 
       {newBooking && data && (
         <NewBooking
-          initialDate={section==='agenda'?day:todayISO()}
-          initialService={availabilityTime?availabilityService:undefined}
+          initialDate={section === 'agenda' ? day : todayISO()}
+          initialService={availabilityTime ? availabilityService : undefined}
           initialTime={availabilityTime}
           error={error}
           hours={data.bookingHours}
@@ -1433,8 +1841,10 @@ export function Admin() {
           busy={busy}
           close={() => setNewBooking(false)}
           save={(input) =>
-            run(() => createBooking(input, true), 'Agendamento criado.', () =>
-              setNewBooking(false)
+            run(
+              () => createBooking(input, true),
+              'Agendamento criado.',
+              () => setNewBooking(false)
             )
           }
         />
@@ -1443,7 +1853,11 @@ export function Admin() {
       {detail && (
         <Modal title="Detalhes do agendamento" close={() => setDetail(null)}>
           <div className="adm-detail-modal-content">
-            {error && <p className="adm-slot-error" role="alert">{error}</p>}
+            {error && (
+              <p className="adm-slot-error" role="alert">
+                {error}
+              </p>
+            )}
             <div className="adm-detail-hero">
               <span className="adm-avatar large">{initial(detail.name)}</span>
               <div className="adm-detail-hero-info">
@@ -1526,7 +1940,14 @@ export function Admin() {
                   <span>{detail.time || 'Selecione uma vaga abaixo'}</span>
                 </Field>
               </div>
-              <Availability date={detail.date} serviceId={detail.serviceId} excludeId={detail.id} value={detail.time} onChange={time=>setDetail({...detail,time})} onReady={setDetailReady}/>
+              <Availability
+                date={detail.date}
+                serviceId={detail.serviceId}
+                excludeId={detail.id}
+                value={detail.time}
+                onChange={(time) => setDetail({ ...detail, time })}
+                onReady={setDetailReady}
+              />
               <Field label="Situação">
                 <select
                   value={detail.status}
@@ -1547,7 +1968,10 @@ export function Admin() {
                 />
               </Field>
               <div className="adm-actions">
-                <button disabled={busy || (active(detail.status) && !detailReady)} className="adm-button primary">
+                <button
+                  disabled={busy || (active(detail.status) && !detailReady)}
+                  className="adm-button primary"
+                >
                   Salvar alterações
                 </button>
               </div>
@@ -1603,10 +2027,7 @@ export function Admin() {
                     </Field>
                   </div>
                   <Field label="Forma de pagamento">
-                    <select
-                      value={payMethod}
-                      onChange={(e) => setPayMethod(e.target.value)}
-                    >
+                    <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
                       {['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito'].map((m) => (
                         <option key={m}>{m}</option>
                       ))}
@@ -1624,8 +2045,8 @@ export function Admin() {
                 </p>
               ))}
               <p className="adm-help">
-                Concluir o atendimento não registra dinheiro automaticamente. Registre o
-                recebimento para atualizar o financeiro.
+                Concluir o atendimento não registra dinheiro automaticamente. Registre o recebimento
+                para atualizar o financeiro.
               </p>
             </section>
 
@@ -1655,9 +2076,7 @@ export function Admin() {
 
       {confirm && (
         <Modal
-          title={
-            confirm.status === 'cancelado' ? 'Cancelar agendamento?' : 'Concluir atendimento?'
-          }
+          title={confirm.status === 'cancelado' ? 'Cancelar agendamento?' : 'Concluir atendimento?'}
           close={() => setConfirm(null)}
         >
           <div className="adm-form">
@@ -1699,22 +2118,57 @@ export function Admin() {
       )}
 
       {editService && (
-        <Modal title="Editar serviço" close={() => setEditService(null)}>
+        <Modal
+          title={
+            data?.services.some((s) => s.id === editService.id) ? 'Editar serviço' : 'Novo serviço'
+          }
+          close={() => {
+            if (!busy) setEditService(null);
+          }}
+        >
           <form
             className="adm-form"
             onSubmit={(e) => {
               e.preventDefault();
               run(
                 () => saveService(editService),
-                'Serviço atualizado.',
+                'Serviço salvo no catálogo.',
                 () => setEditService(null)
               );
             }}
           >
+            <Field label="Categoria">
+              <select
+                value={editService.category}
+                disabled={data?.services.some((s) => s.id === editService.id)}
+                onChange={(e) =>
+                  setEditService({
+                    ...editService,
+                    category: e.target.value as Service['category'],
+                    duration: e.target.value === 'natural' ? 180 : 45,
+                  })
+                }
+              >
+                <option value="natural">Bronze natural</option>
+                <option value="cabine">Bronze em cabine</option>
+                <option value="clareamento">Clareamento</option>
+              </select>
+            </Field>
+            {error && (
+              <p className="adm-form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <p className="adm-help">
+              As alterações valem para novas reservas. Agendamentos anteriores mantêm o preço e a
+              duração registrados.
+            </p>
             <Field label="Nome">
               <input
                 required
                 value={editService.name}
+                minLength={2}
+                maxLength={120}
                 onChange={(e) => setEditService({ ...editService, name: e.target.value })}
               />
             </Field>
@@ -1768,22 +2222,36 @@ export function Admin() {
       )}
 
       {editAddon && (
-        <Modal title="Editar adicional" close={() => setEditAddon(null)}>
+        <Modal
+          title={
+            data?.addons.some((a) => a.id === editAddon.id) ? 'Editar adicional' : 'Novo adicional'
+          }
+          close={() => {
+            if (!busy) setEditAddon(null);
+          }}
+        >
           <form
             className="adm-form"
             onSubmit={(e) => {
               e.preventDefault();
               run(
                 () => saveAddon(editAddon),
-                'Adicional atualizado.',
+                'Adicional salvo no catálogo.',
                 () => setEditAddon(null)
               );
             }}
           >
+            {error && (
+              <p className="adm-form-error" role="alert">
+                {error}
+              </p>
+            )}
             <Field label="Nome">
               <input
                 required
                 value={editAddon.name}
+                minLength={2}
+                maxLength={120}
                 onChange={(e) => setEditAddon({ ...editAddon, name: e.target.value })}
               />
             </Field>
@@ -1794,9 +2262,7 @@ export function Admin() {
                 min="0"
                 step="0.01"
                 value={editAddon.price}
-                onChange={(e) =>
-                  setEditAddon({ ...editAddon, price: Number(e.target.value) })
-                }
+                onChange={(e) => setEditAddon({ ...editAddon, price: Number(e.target.value) })}
               />
             </Field>
             <button disabled={busy} className="adm-button primary">
@@ -1819,28 +2285,37 @@ function BookingHoursEditor({
   save: (hours: BookingHours) => void;
 }) {
   const [draft, setDraft] = useState<BookingHours>({ ...hours, natural: [...naturalTimes] });
-  const [pending, setPending] = useState<Record<"cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", string>>({
+  const [pending, setPending] = useState<
+    Record<'cabine' | 'clareamento' | 'cabineSaturday' | 'cabineSunday', string>
+  >({
     cabineSaturday: '',
     cabineSunday: '',
     cabine: '',
     clareamento: '',
   });
   useEffect(() => setDraft({ ...hours, natural: [...naturalTimes] }), [hours]);
-  const groups: ["cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", string, string][] = [
+  const groups: ['cabine' | 'clareamento' | 'cabineSaturday' | 'cabineSunday', string, string][] = [
     ['cabine', 'Cabine — dias de semana', 'Horários de segunda a sexta'],
     ['cabineSaturday', 'Cabine — sábado', 'Horários de sábado'],
     ['cabineSunday', 'Cabine — domingo', 'Horários de domingo'],
     ['clareamento', 'Clareamento', '08h às 20h30'],
   ];
-  function validTime(key: "cabine" | "clareamento" | "cabineSaturday" | "cabineSunday", value: string) {
+  function validTime(
+    key: 'cabine' | 'clareamento' | 'cabineSaturday' | 'cabineSunday',
+    value: string
+  ) {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return false;
     const minute = Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-    return minute % 5 === 0 && (minute >= 480 && minute <= 1230);
+    return minute % 5 === 0 && minute >= 480 && minute <= 1230;
   }
-  function add(key: "cabine" | "clareamento" | "cabineSaturday" | "cabineSunday") {
+  function add(key: 'cabine' | 'clareamento' | 'cabineSaturday' | 'cabineSunday') {
     const value = pending[key];
-    if (!validTime(key, value) || (draft[key] || defaultBookingHours[key] || []).includes(value)) return;
-    setDraft({ ...draft, [key]: [...(draft[key] || defaultBookingHours[key] || []), value].sort() });
+    if (!validTime(key, value) || (draft[key] || defaultBookingHours[key] || []).includes(value))
+      return;
+    setDraft({
+      ...draft,
+      [key]: [...(draft[key] || defaultBookingHours[key] || []), value].sort(),
+    });
     setPending({ ...pending, [key]: '' });
   }
   return (
@@ -1852,7 +2327,38 @@ function BookingHoursEditor({
         </div>
         <Clock size={19} />
       </div>
-      <div className="adm-form"><h3>Dias de funcionamento</h3><p>Marque os dias em que deseja abrir, incluindo segunda-feira.</p><div className="adm-hour-chips">{['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'].map((label, day) => <label key={day} className="adm-hour-chip"><input type="checkbox" checked={(draft.openDays || [0,2,3,4,5,6]).includes(day)} onChange={e => { const days=draft.openDays || [0,2,3,4,5,6]; setDraft({...draft, openDays:e.target.checked ? [...days,day].sort() : days.filter(d=>d!==day)}); }} />{label}</label>)}</div></div>
+      <div className="adm-form">
+        <h3>Dias de funcionamento</h3>
+        <p>Marque os dias em que deseja abrir, incluindo segunda-feira.</p>
+        <div className="adm-hour-chips">
+          {[
+            'Domingo',
+            'Segunda-feira',
+            'Terça-feira',
+            'Quarta-feira',
+            'Quinta-feira',
+            'Sexta-feira',
+            'Sábado',
+          ].map((label, day) => (
+            <label key={day} className="adm-hour-chip">
+              <input
+                type="checkbox"
+                checked={(draft.openDays || [0, 2, 3, 4, 5, 6]).includes(day)}
+                onChange={(e) => {
+                  const days = draft.openDays || [0, 2, 3, 4, 5, 6];
+                  setDraft({
+                    ...draft,
+                    openDays: e.target.checked
+                      ? [...days, day].sort()
+                      : days.filter((d) => d !== day),
+                  });
+                }}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
       <div className="adm-settings-hours">
         <section>
           <h3>Bronze natural</h3>
@@ -1877,7 +2383,12 @@ function BookingHoursEditor({
                   type="button"
                   className="adm-hour-chip"
                   key={t}
-                  onClick={() => setDraft({ ...draft, [key]: (draft[key] || defaultBookingHours[key] || []).filter((x) => x !== t) })}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      [key]: (draft[key] || defaultBookingHours[key] || []).filter((x) => x !== t),
+                    })
+                  }
                   aria-label={`Remover ${t} de ${label}`}
                 >
                   {t}
@@ -1900,7 +2411,10 @@ function BookingHoursEditor({
                 type="button"
                 className="adm-button"
                 onClick={() => add(key)}
-                disabled={!validTime(key, pending[key]) || (draft[key] || defaultBookingHours[key] || []).includes(pending[key])}
+                disabled={
+                  !validTime(key, pending[key]) ||
+                  (draft[key] || defaultBookingHours[key] || []).includes(pending[key])
+                }
               >
                 Adicionar
               </button>
@@ -1925,7 +2439,11 @@ function BookingHoursEditor({
   );
 }
 
-function NewBooking({ initialDate, initialService, initialTime, error,
+function NewBooking({
+  initialDate,
+  initialService,
+  initialTime,
+  error,
   hours,
   services,
   addons,
@@ -1933,7 +2451,10 @@ function NewBooking({ initialDate, initialService, initialTime, error,
   close,
   save,
 }: {
-  initialDate:string; initialService?:string; initialTime?:string; error:string;
+  initialDate: string;
+  initialService?: string;
+  initialTime?: string;
+  error: string;
   hours: BookingHours;
   services: Service[];
   addons: Addon[];
@@ -1951,13 +2472,17 @@ function NewBooking({ initialDate, initialService, initialTime, error,
     addons: [] as string[],
   });
   const service = services.find((s) => s.id === input.serviceId);
-  const [slotReady,setSlotReady]=useState(false);
+  const [slotReady, setSlotReady] = useState(false);
   const total =
     (service?.price || 0) +
     addons.filter((a) => input.addons.includes(a.id)).reduce((v, a) => v + a.price, 0);
   return (
     <Modal title="Novo agendamento" close={close}>
-      {error && <p className="adm-slot-error" role="alert">{error}</p>}
+      {error && (
+        <p className="adm-slot-error" role="alert">
+          {error}
+        </p>
+      )}
       <form
         className="adm-form"
         onSubmit={(e) => {
@@ -1995,7 +2520,13 @@ function NewBooking({ initialDate, initialService, initialTime, error,
               setInput({
                 ...input,
                 serviceId: s.id,
-                time: hoursForService(hours,s.category,new Date(input.date+'T12:00:00').getDay(),s.id)[0] || '',
+                time:
+                  hoursForService(
+                    hours,
+                    s.category,
+                    new Date(input.date + 'T12:00:00').getDay(),
+                    s.id
+                  )[0] || '',
               });
             }}
           >
@@ -2018,7 +2549,13 @@ function NewBooking({ initialDate, initialService, initialTime, error,
             />
           </Field>
         </div>
-        <Availability date={input.date} serviceId={input.serviceId} value={input.time} onChange={time=>setInput({...input,time})} onReady={setSlotReady}/>
+        <Availability
+          date={input.date}
+          serviceId={input.serviceId}
+          value={input.time}
+          onChange={(time) => setInput({ ...input, time })}
+          onReady={setSlotReady}
+        />
         <Field label="Observações">
           <textarea
             maxLength={1000}
