@@ -21,7 +21,7 @@ export const seedServices:Service[] = [
 export const seedAddons:Addon[] = [{id:'clareamento-area',name:'Clareamento de Área',price:10},{id:'argiloterapia-facial',name:'Argiloterapia Facial',price:10},{id:'tatuagem-temporaria',name:'Tatuagem Temporária',price:5},{id:'tattoo-solar',name:'Tattoo Solar',price:5},{id:'intensificacao-alcinha',name:'Intensificação de Alcinha',price:15}];
 export const times = ['08:00','09:00','10:00','11:00','15:00','16:00','17:00','18:00','19:00'];
 export const naturalTimes = Array.from({length:12},(_,i)=>`Vaga ${i+1}`);
-export const naturalSlotLabel = (slot:string) => slot;
+export const naturalSlotLabel = (slot:string) => { const index=naturalTimes.indexOf(slot); return index<0 ? slot : `Reserva ${String.fromCharCode(65+index)}`; };
 export const periods = ['Manhã (08h-11h)','Tarde (15h-19h)'];
 export const defaultBookingHours:BookingHours = { natural:[...naturalTimes], cabine:['08:00','09:00','10:00','11:00','14:30','15:30','16:30','17:30','18:30','19:30','20:30'], clareamento:[...times], cabineSaturday:['08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00'], cabineSunday:['08:00','09:00','10:00','11:00'], openDays:[0,2,3,4,5,6] };
 export function isOpenDay(hours:BookingHours, day:number) { return (hours.openDays || [0,2,3,4,5,6]).includes(day); }

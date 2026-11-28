@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminAvailableTimes } from './store';
+import { naturalSlotLabel } from './domain';
 
 export function Availability({date, serviceId, excludeId, value, onChange, onReady, revision=0}: {
  date:string; serviceId:string; excludeId?:string; value:string; onChange:(time:string)=>void; onReady?:(ready:boolean)=>void; revision?:number;
@@ -21,9 +22,9 @@ export function Availability({date, serviceId, excludeId, value, onChange, onRea
  if(!state.times.length) return <p className="adm-help">Nenhuma vaga disponível. Escolha outra data ou confira os bloqueios.</p>;
  const natural=state.times[0].startsWith('Vaga');
  return <div className="adm-slots">
-  {(natural?['Vagas do bronze natural']:['Manhã','Tarde e noite']).map((label,index)=>{
+  {(natural?['Reservas individuais do bronze natural']:['Manhã','Tarde e noite']).map((label,index)=>{
    const times=state.times.filter(t=>natural||(index===0?Number(t.slice(0,2))<12:Number(t.slice(0,2))>=12));
-   return times.length>0&&<div key={label}><h4>{label}</h4><div className="adm-slot-grid">{times.map(t=><button type="button" key={t} aria-pressed={value===t} className={'adm-slot '+(value===t?'selected':'')} onClick={()=>onChange(t)}>{t}</button>)}</div></div>;
+   return times.length>0&&<div key={label}><h4>{label}</h4><div className="adm-slot-grid">{times.map(t=><button type="button" key={t} aria-pressed={value===t} className={'adm-slot '+(value===t?'selected':'')} onClick={()=>onChange(t)}>{natural ? naturalSlotLabel(t) : t}</button>)}</div></div>;
   })}
   <p className="adm-help">Somente vagas livres. A disponibilidade é conferida novamente ao salvar.</p>
  </div>;

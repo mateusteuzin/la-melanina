@@ -384,7 +384,7 @@ export function Booking() {
     const addOnsText = selectedAddOns.length
       ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
       : "";
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `na ${displayTime}` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix. Podem conferir o comprovante que vou anexar e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `com ${naturalSlotLabel(displayTime)} (1 pessoa)` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix. Podem conferir o comprovante que vou anexar e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -430,7 +430,7 @@ export function Booking() {
   };
 
   const stepActive = serviceId ? (selected ? (time ? 3 : 2) : 1) : 1;
-  const selectedTimeDisplay: string = time || "—";
+  const selectedTimeDisplay: string = time ? (isNatural ? `${naturalSlotLabel(time)} · 1 pessoa` : time) : "—";
 
   return (
     <section id="agendar" className="scroll-mt-20 bg-secondary/40 sm:scroll-mt-32">
@@ -620,7 +620,7 @@ export function Booking() {
                     {isNatural && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3 text-xs sm:text-sm text-rose-900 dark:text-rose-100">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
-                        <span><span className="font-semibold">Horário de chegada:</span> Escolha uma das 12 vagas do dia. Não é necessário escolher horário. Sábado: 08h às 11h e 14h às 16h; domingo: 08h às 12h.</span>
+                        <span><span className="font-semibold">Horário de chegada:</span> Cada reserva é para 1 pessoa. Escolha uma opção disponível abaixo. As letras apenas identificam a reserva; não indicam quantidade nem ordem de chegada. Sábado: 08h às 11h e 14h às 16h; domingo: 08h às 12h.</span>
                       </div>
                     )}
                     {isCabine && (
@@ -639,8 +639,8 @@ export function Booking() {
                     {isTimedService && (
                       <div className="mt-4 space-y-3">
                         <div className={!morningHours.length ? "hidden" : ""}>
-                          <div className="text-xs font-semibold text-foreground mb-2">{isNatural ? "Vagas disponíveis" : "Manhã"}</div>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="text-xs font-semibold text-foreground mb-2">{isNatural ? "Escolha sua reserva individual" : "Manhã"}</div>
+                          <div className={isNatural ? "grid grid-cols-2 sm:grid-cols-3 gap-2" : "grid grid-cols-4 gap-2"}>
                             {morningHours.map((t) => {
                               const horarioNormalizado = normalizeTime(t);
                               const unavail = !availabilityReady || bookedTimes.includes(horarioNormalizado);
@@ -659,8 +659,9 @@ export function Booking() {
                                         : "border-border bg-background text-foreground hover:border-wine/50"
                                     }`}
                                 >
-                                  {t}
-                                  {unavail && <div className="text-[9px]">Indisponível</div>}
+                                  {isNatural ? naturalSlotLabel(t) : t}
+                                  {isNatural && <div className="text-xs mt-1">{unavail ? "Indisponível" : sel ? "Selecionada · 1 pessoa" : "Agendar · 1 pessoa"}</div>}
+                                  {!isNatural && unavail && <div className="text-[9px]">Indisponível</div>}
                                 </button>
                               );
                             })}
@@ -708,7 +709,7 @@ export function Booking() {
           <div className="hidden rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-soft lg:block">
             <h3 className="mb-4 text-lg sm:text-xl font-semibold text-wine">Como funciona o agendamento</h3>
             <ol className="space-y-4">
-              {["Escolha o serviço", "Escolha a data e a vaga ou horário", "Confirme no WhatsApp"].map((t, i) => (
+              {["Escolha o serviço", "Escolha a data e sua reserva", "Confirme no WhatsApp"].map((t, i) => (
                 <li key={t} className="flex gap-3 sm:gap-4">
                   <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-full bg-wine text-sm font-semibold text-wine-foreground">{i + 1}</div>
                   <div>
@@ -717,7 +718,7 @@ export function Booking() {
                       {i === 0
                         ? "Selecione o serviço principal e, se quiser, marque opções em Adicione também."
                         : i === 1
-                          ? "Escolha uma das 12 vagas do dia para o bronze natural ou um horário para os outros serviços."
+                          ? "No bronze natural, cada opção reserva o atendimento de 1 pessoa. Nos outros serviços, escolha um horário."
                           : "Você será direcionada para o WhatsApp com todos os detalhes do agendamento."}
                     </p>
                   </div>
@@ -744,7 +745,7 @@ export function Booking() {
                 <Row key={addOn.id} icon={<Sparkles className="size-4" />} label="Adicional" value={`${addOn.name} — ${addOn.price}`} />
               ))}
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
-              <Row icon={<Clock className="size-4" />} label={isNatural?"Vaga":"Horário"} value={selectedTimeDisplay} />
+              <Row icon={<Clock className="size-4" />} label={isNatural?"Reserva individual":"Horário"} value={selectedTimeDisplay} />
               <div className="border-t border-border pt-2 mt-2">
                 <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
                 <Row icon={<CreditCard className="size-4" />} label="Sinal via Pix" value={DEPOSIT} />
