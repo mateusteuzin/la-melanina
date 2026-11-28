@@ -384,7 +384,7 @@ export function Booking() {
     const addOnsText = selectedAddOns.length
       ? `\nAdicione também: ${selectedAddOns.map((addOn) => `${addOn.name} (${addOn.price})`).join(", ")}`
       : "";
-    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `com ${naturalSlotLabel(displayTime)} (1 pessoa)` : `às ${displayTime}`}.${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix. Podem conferir o comprovante que vou anexar e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
+    const msg = `Olá!\nGostaria de agendar uma sessão de ${service.name} para o dia ${summary.date} ${isNatural ? `com ${naturalSlotLabel(displayTime)} (1 pessoa)` : `às ${displayTime}`}.${isNatural ? "\nMontagem do biquíni das 8h às 10h. Chegada até as 10h." : ""}${addOnsText}\nValor total: ${totalPrice}\n\nPaguei o sinal de ${DEPOSIT} via Pix. Podem conferir o comprovante que vou anexar e confirmar meu horário?${obs ? `\n\nObservações: ${obs}` : ""}\n\nNome: ${nome.trim()}`;
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -620,7 +620,10 @@ export function Booking() {
                     {isNatural && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 p-3 text-xs sm:text-sm text-rose-900 dark:text-rose-100">
                         <AlertCircle className="mt-0.5 size-4 shrink-0 flex-shrink-0" />
-                        <span><span className="font-semibold">Horário de chegada:</span> Cada reserva é para 1 pessoa. Escolha uma opção disponível abaixo. As letras apenas identificam a reserva; não indicam quantidade nem ordem de chegada. Sábado: 08h às 11h e 14h às 16h; domingo: 08h às 12h.</span>
+                        <div className="space-y-2">
+                          <p><strong>Bronze natural: montagem do biquíni das 8h às 10h.</strong> Chegue até as 10h. Após esse horário, não realizamos a montagem do biquíni.</p>
+                          <p>Cada reserva é para 1 pessoa. Escolha uma opção disponível abaixo. As letras apenas identificam a reserva; não indicam quantidade nem ordem de chegada.</p>
+                        </div>
                       </div>
                     )}
                     {isCabine && (
@@ -746,6 +749,7 @@ export function Booking() {
               ))}
               <Row icon={<Calendar className="size-4" />} label="Data" value={summary ? `${summary.date} (${summary.weekday})` : "—"} />
               <Row icon={<Clock className="size-4" />} label={isNatural?"Reserva individual":"Horário"} value={selectedTimeDisplay} />
+              {isNatural && <p className="rounded-xl border border-wine/20 bg-wine/5 p-3 text-sm text-wine"><strong>Chegada até as 10h.</strong> A montagem do biquíni é realizada das 8h às 10h.</p>}
               <div className="border-t border-border pt-2 mt-2">
                 <Row icon={<CreditCard className="size-4" />} label="Valor total" value={totalPrice} />
                 <Row icon={<CreditCard className="size-4" />} label="Sinal via Pix" value={DEPOSIT} />
